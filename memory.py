@@ -1,7 +1,6 @@
 from math import inf
 import psutil
 
-
 max_usage = inf
 _process = psutil.Process()
 
