@@ -5,26 +5,31 @@ Created on Sat Apr 18 11:37:17 2020
 @author: Bruger
 """
 
-loc00 = Location(0,0)
-loc01 = Location(0,1)
-loc02 = Location(0,2)
-loc10 = Location(1,0)
-loc11 = Location(1,1)
-loc12 = Location(1,2)
-loc20 = Location(2,0)
-loc21 = Location(2,1)
-loc22 = Location(2,2)
+agent = CurrentState.AgentAt[0]
+box = CurrentState.BoxAt[0]
 
-State.current_state=['   ']*3
+#print(agent_0.Push(box_A,loc00))
+#print(agent_0.Pull(loc02,box_A))
+print(agent.Move(locations[1][7]))
+print(agent.Move(locations[1][6]))
+print(agent.Move(locations[1][5]))
+print(agent.Move(locations[1][4]))
+print(agent.Move(locations[1][3]))
+print(agent.Move(locations[1][2]))
+print(agent.Move(locations[1][1]))
+print(agent.Move(locations[2][1]))
+print(agent.Move(locations[3][1]))
+print(agent.Move(locations[3][2]))
+print(agent.Move(locations[3][3]))
+print(agent.Move(locations[3][4]))
+print(agent.Move(locations[3][5]))
+print(agent.Move(locations[3][6]))
+print(agent.Move(locations[3][7]))
+print(agent.Move(locations[3][8]))
+print(agent.Move(locations[3][9]))
+print(agent.Move(locations[3][10]))
 
-agent_0 = Agent(loc11,'red','0')
-
-box_A = Box(loc01,'red','A')
-
-print(agent_0.Push(box_A,loc00))
-print(agent_0.Pull(loc02,box_A))
-print(agent_0.Move(loc12))
+print(agent.Push(box,locations[1][10]))
+print(agent.Pull(locations[3][10],box))
 
 
-for i in State.current_state :
-    print(i)

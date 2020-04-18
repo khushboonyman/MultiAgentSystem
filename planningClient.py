@@ -6,7 +6,7 @@ from HardCoded import *
 from location import *
 from agent import *
 from box import *
-from state import State
+from state import *
 
 def HandleError(message):
     print(message,file=sys.stderr,flush=True)
@@ -106,25 +106,38 @@ if __name__ == '__main__':
     
     #below line is only for testing purpose                      
     #HardCodedForDefault()    
-    State.current_state = initial_state.copy() 
+    State.current_state = initial_state
+    MAX_ROW = len(initial_state)
+    MAX_COL = len(initial_state[0])
     locations = list()
-    agents = list()
-    boxes = list()
-    goals = list()
     pattern_agent = re.compile("[0-9]+")
     pattern_box = re.compile("[A-Z]+")
     for i_index,row in enumerate(State.current_state) :
+        firstlist = list()
         for j_index,col in enumerate(row) :
             loc = Location(i_index,j_index)
-            locations.append(loc)
+            firstlist.append(loc)
+            if col == ' ' :
+                CurrentState.FreeCells.append(loc)
             if pattern_agent.fullmatch(col) is not None :
                 for key,value in color_dict.items() :
                     if col in value :
                         agent = Agent(loc,key,col)
-                        agents.append(agent)
+                        CurrentState.AgentAt.append(agent)
             if pattern_box.fullmatch(col) is not None :
                 for key,value in color_dict.items() :
                     if col in value :
                         box = Box(loc,key,col)
-                        boxes.append(box)
-
+                        CurrentState.BoxAt.append(box)
+            goal = goal_state[i_index][j_index]
+            if pattern_box.fullmatch(goal) is not None :
+                for key,value in color_dict.items() :
+                    if goal in value :
+                        box = Box(loc,key,goal)
+                        FinalState.GoalAt.append(box)
+        locations.append(firstlist)
+    for row in range(1,MAX_ROW-1) :
+        for col in range(1,MAX_COL-1):
+            CurrentState.Neighbours[locations[row][col]] = [locations[row+1][col],locations[row-1][col],locations[row][col+1],locations[row][col-1]]
+    
+        

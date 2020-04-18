@@ -1,4 +1,4 @@
-import state
+from state import *
 
 class Location :
     def __init__(self,x=0,y=0):
@@ -21,17 +21,6 @@ class Location :
     
     def __hash__(self) :
         return hash(str(self))
-    
-    def free(self):
-        if State.current_state[self.x][self.y] == ' ' :
-            return True
-        return False
-
-    def neighbor(self,other):
-        if ((self.x == other.x and self.y in [other.y+1,other.y-1]) 
-        or (self.y == other.y and self.x in [other.x+1,other.x-1])) :
-            return True
-        return False
         
     def assign(self,data):
         #we don't handle edge cases because there are walls on all these edge cells and they will never need to be modified
@@ -40,7 +29,18 @@ class Location :
     def free_cell(self) :
         assign(self,' ')    
 
-
+    '''def neighbor(self,other):
+        if ((self.x == other.x and self.y in [other.y+1,other.y-1]) 
+        or (self.y == other.y and self.x in [other.x+1,other.x-1])) :
+            return True
+        return False
+        
+       def free(self):
+        if State.current_state[self.x][self.y] == ' ' :
+            return True
+        return False 
+        
+        '''
         
     
     

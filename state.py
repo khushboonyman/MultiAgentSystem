@@ -6,4 +6,12 @@ Created on Wed Apr 15 21:55:26 2020
 """
 class State :
     current_state=list()
-    final_state = dict()
+    
+class CurrentState :
+    AgentAt = list()
+    BoxAt = list()
+    FreeCells = list()
+    Neighbours = {}
+    
+class FinalState :
+    GoalAt = list()
