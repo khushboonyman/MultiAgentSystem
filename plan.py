@@ -6,6 +6,7 @@ Created on Sun Apr 19 10:43:22 2020
 """
 from queue import PriorityQueue
 from state import *
+import sys
 
 def printplan(plan):
     for i in plan :
@@ -35,9 +36,14 @@ class Plan() :
         
         for leaf in leaves :
             if leaf not in self.frontier_set :
-                heur = self.Heuristic(leaf)
-                frontier.put((heur,leaf))
-                self.frontier_set.add(leaf)
+                try :
+                    heur = self.Heuristic(leaf)
+                    frontier.put((heur,leaf))
+                    self.frontier_set.add(leaf)
+                except Exception as ex:
+                    print('error for '+str(heur)+' leaf '+str(leaf)+' neighbours of '+str(loc))
+                    sys.exit(1)
+        
         
         if frontier.empty() :
             return False

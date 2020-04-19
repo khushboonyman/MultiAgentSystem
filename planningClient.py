@@ -196,11 +196,11 @@ if __name__ == '__main__':
     for agent,box_cells in current_plan.items() :
         box = box_cells[0]
         cells = box_cells[1]
-        #agent.ExecutePlan(box,cells)
+        agent.ExecutePlan(box,cells)
         
     
-for c in cells :
-    print(c)
+#for c in cells :
+#    print(c)
     
 #for c in current_plan[1] :
 #    print(c)       

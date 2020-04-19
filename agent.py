@@ -87,7 +87,7 @@ class Agent :
             return
         cell = cells.pop(0)
         #print(cell,cells)
-        if box.location not in CurrentState.Neighbours[cell] :
+        if box.location != cell :
             ToServer(self.Move(cell))
         else :
             if cells[0] != self.location :

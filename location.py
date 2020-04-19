@@ -10,7 +10,14 @@ class Location :
             return True
         else :
             return False
-        
+    
+    def __le__(self,other) :
+        if self.x < other.x :
+            return True
+        if self.y < other.y :
+            return True
+        return False
+    
     def __ne__(self,other) :
         if self.x != other.x or self.y != other.y :
             return True
