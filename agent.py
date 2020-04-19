@@ -12,6 +12,9 @@ def TranslateToDir(locfrom,locto):
             return 'N'
         else :
             return 'S'
+        
+def ToServer(message):
+    print(message, file=sys.stdout, flush=True)
                     
 class Agent :
     def __init__(self,location,color,number):
@@ -22,12 +25,15 @@ class Agent :
     def __str__(self) :
         return str(self.location)+'\nColor : '+self.color+'\nLetter : '+self.number
     
+    def __hash__(self) :
+        return hash(str(self))
+    
     def Move(self,agtto):
         if (self.location !=agtto and agtto in CurrentState.FreeCells and self.location not in CurrentState.FreeCells and 
         agtto in CurrentState.Neighbours[self.location]) :
             
             move_dir_agent = TranslateToDir(self.location,agtto)
-            self.location.assign(' ')
+            self.location.free_cell()
             CurrentState.FreeCells.append(self.location)
             self.location = agtto
             self.location.assign(self.number)
@@ -43,7 +49,7 @@ class Agent :
         
             move_dir_agent = TranslateToDir(self.location,box.location)
             move_dir_box = TranslateToDir(box.location,boxto)
-            self.location.assign(' ')
+            self.location.free_cell()
             CurrentState.FreeCells.append(self.location)
             self.location = box.location
             self.location.assign(self.number)
@@ -61,7 +67,7 @@ class Agent :
             
             move_dir_agent = TranslateToDir(self.location,agtto)
             curr_dir_box = TranslateToDir(self.location,box.location)
-            box.location.assign(' ')
+            box.location.free_cell()
             CurrentState.FreeCells.append(box.location)
             box.location = self.location
             box.location.assign(box.letter)
@@ -71,6 +77,9 @@ class Agent :
             return 'Pull('+move_dir_agent+','+curr_dir_box+')'
         
         return 'NoOp'
+    
+    def ExecutePlan(self,cells) :
+        cell = cells.pop(0)
     
     
     

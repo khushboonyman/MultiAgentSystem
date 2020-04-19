@@ -7,6 +7,7 @@ from location import *
 from agent import *
 from box import *
 from state import *
+from plan import *
 
 def HandleError(message):
     print(message,file=sys.stderr,flush=True)
@@ -37,6 +38,7 @@ def ReadHeaders(messages) :
         HandleError('Level name is missing') 
     
     line = Readlines(messages)
+    added = list()
     if line == '#colors' :
         color_dict = {}
         while True :
@@ -46,6 +48,11 @@ def ReadHeaders(messages) :
                 if color_data[0] in color_dict.keys() :
                     HandleError('Color is repeated')
                 else :
+                    for box_or_agent in color_data :
+                        if box_or_agent in added :
+                            HandleError('Box or agent has already been specified')
+                        else :
+                            added.append(box_or_agent)
                     color_dict[color_data[0]] = color_data[1:]
             else :
                 if line[0] == '#' :
@@ -77,8 +84,36 @@ def ReadHeaders(messages) :
         HandleError('End missing')    
     
     return color_dict,initial_state,goal_state
-    
-            
+ 
+def FindBox(color,letter) :
+    boxes = list()
+    for box in CurrentState.BoxAt :
+        if box.color == color and box.letter == letter :
+            boxes.append(box)
+    return boxes
+
+def FindAgent(color) :
+    for agent in CurrentState.AgentAt :
+        if agent.color == color :
+            return agent
+    return None
+
+def MakePlan() :
+    plans_box = {}
+    for goal in FinalState.GoalAt :
+        boxes = FindBox(goal.color,goal.letter)
+        agent = FindAgent(goal.color)
+        if agent is not None :            
+            plans = list()
+            for box in boxes :
+                plan_a = Plan(agent.location,box.location)
+                plan_b = Plan(box.location,goal.location)
+                action = plan_a.CreatePlan(agent.location,[])
+                action.extend(plan_b.CreatePlan(box.location,[]))
+                plans.append(action)
+            plans_box[agent]=(min(plans))
+    return plans_box
+                
 if __name__ == '__main__':    
     # Set max memory usage allowed (soft limit).
     parser = argparse.ArgumentParser(description='Client based on planning approach.')
@@ -138,6 +173,34 @@ if __name__ == '__main__':
         locations.append(firstlist)
     for row in range(1,MAX_ROW-1) :
         for col in range(1,MAX_COL-1):
-            CurrentState.Neighbours[locations[row][col]] = [locations[row+1][col],locations[row-1][col],locations[row][col+1],locations[row][col-1]]
-    
+            CurrentState.Neighbours[locations[row][col]] = list()
+            if State.current_state[row+1][col] != '+' :
+                CurrentState.Neighbours[locations[row][col]].append(locations[row+1][col])
+            if State.current_state[row-1][col] != '+' :
+                CurrentState.Neighbours[locations[row][col]].append(locations[row-1][col])
+            if State.current_state[row][col+1] != '+' :
+                CurrentState.Neighbours[locations[row][col]].append(locations[row][col+1])
+            if State.current_state[row][col-1] != '+' :
+                CurrentState.Neighbours[locations[row][col]].append(locations[row][col-1])
+    current_plan = MakePlan()
+    for agent,actions in current_plan.items() :
+        agent.ExecutePlan(cells)
         
+    
+            
+'''plans_box = list()
+for goal in FinalState.GoalAt :
+    boxes = FindBox(goal.color,goal.letter)
+    plans = list()
+    for box in boxes :
+        plan = Plan(box.location,goal.location)
+        action = plan.CreatePlan(box.location,[box.location])
+        plans.append(action)
+    plans_box.append(plans.index(min(plans)))       
+            
+   ''' 
+#for c in current_plan[0] :
+#    print(c) 
+    
+#for c in current_plan[1] :
+#    print(c)       
