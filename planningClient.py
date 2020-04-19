@@ -14,9 +14,9 @@ def HandleError(message):
 
 def Readlines(msg):
     #add it when using sysin
-    return msg.readline().rstrip()
+    #return msg.readline().rstrip()
     #remove it when using sysin
-    #return msg.pop(0).rstrip()
+    return msg.pop(0).rstrip()
     
 def ReadHeaders(messages) :
     list_of_colors = ['blue','red','cyan','purple','green','orange','pink','grey','lightblue','brown']
@@ -108,8 +108,15 @@ def MakePlan() :
             for box in boxes :
                 plan_a = Plan(agent.location,box.location)
                 plan_b = Plan(box.location,goal.location)
-                action = plan_a.CreatePlan(agent.location,[])
-                action.extend(plan_b.CreatePlan(box.location,[]))
+                action = []
+                if plan_a.CreatePlan(agent.location) :
+                    #print(plan_a.plan)
+                    plan_a.plan.reverse()
+                    action.extend(plan_a.plan)
+                if plan_b.CreatePlan(box.location) :
+                    #print(plan_b.plan)
+                    plan_b.plan.reverse()
+                    action.extend(plan_b.plan)
                 plans.append(action)
             index_of_box = plans.index(min(plans))
             box_chosen = boxes[index_of_box]
@@ -129,12 +136,12 @@ if __name__ == '__main__':
     # Run client.
     try:
         #add when using input from sysin
-        server_messages = sys.stdin
-        ToServer('PlanningClient')
+        #server_messages = sys.stdin
+        #ToServer('PlanningClient')
         #remove when using sysin
-        #f=open('../MAExample.lvl','r')
-        #server_messages = f.readlines()
-        #f.close()
+        f=open('../SAExample.lvl','r')
+        server_messages = f.readlines()
+        f.close()
         #remove until here
         color_dict,initial_state,goal_state = ReadHeaders(server_messages) 
             
@@ -189,12 +196,11 @@ if __name__ == '__main__':
     for agent,box_cells in current_plan.items() :
         box = box_cells[0]
         cells = box_cells[1]
-        agent.ExecutePlan(box,cells)
+        #agent.ExecutePlan(box,cells)
         
     
-'''for key,value in current_plan.items() :
-    print(key)
-    print(value[0])
-'''    
+for c in cells :
+    print(c)
+    
 #for c in current_plan[1] :
 #    print(c)       

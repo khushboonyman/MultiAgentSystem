@@ -15,8 +15,10 @@ def TranslateToDir(locfrom,locto):
             return 'S'
         
 def ToServer(message):
-    #print(message)
-    print(message, file=sys.stdout, flush=True)
+    #remove it with sysin
+    print(message)
+    #add it with sysin
+    #print(message, file=sys.stdout, flush=True)
                     
 class Agent :
     def __init__(self,location,color,number):
@@ -85,7 +87,7 @@ class Agent :
             return
         cell = cells.pop(0)
         #print(cell,cells)
-        if box.location != cell :
+        if box.location not in CurrentState.Neighbours[cell] :
             ToServer(self.Move(cell))
         else :
             if cells[0] != self.location :
