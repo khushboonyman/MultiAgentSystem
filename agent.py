@@ -1,5 +1,6 @@
 from location import *
 from state import *    
+import sys
 
 def TranslateToDir(locfrom,locto):
     if locfrom.x == locto.x :
@@ -14,6 +15,7 @@ def TranslateToDir(locfrom,locto):
             return 'S'
         
 def ToServer(message):
+    #print(message)
     print(message, file=sys.stdout, flush=True)
                     
 class Agent :
@@ -78,8 +80,25 @@ class Agent :
         
         return 'NoOp'
     
-    def ExecutePlan(self,cells) :
+    def ExecutePlan(self,box,cells) :
+        if len(cells) <= 1 :
+            return
         cell = cells.pop(0)
+        #print(cell,cells)
+        if box.location != cell :
+            ToServer(self.Move(cell))
+        else :
+            if cells[0] != self.location :
+                ToServer(self.Push(box,cells[0]))
+            else :
+                nabo = CurrentState.Neighbours[self.location]
+                for n in nabo :
+                    action = self.Pull(nabo,box)
+                    if action != 'NoOp' :
+                        break
+            
+        self.ExecutePlan(box,cells)
+        
     
     
     

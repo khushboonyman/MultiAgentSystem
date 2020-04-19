@@ -14,9 +14,9 @@ def HandleError(message):
 
 def Readlines(msg):
     #add it when using sysin
-    #return msg.readline().rstrip()
+    return msg.readline().rstrip()
     #remove it when using sysin
-    return msg.pop(0).rstrip()
+    #return msg.pop(0).rstrip()
     
 def ReadHeaders(messages) :
     list_of_colors = ['blue','red','cyan','purple','green','orange','pink','grey','lightblue','brown']
@@ -111,7 +111,10 @@ def MakePlan() :
                 action = plan_a.CreatePlan(agent.location,[])
                 action.extend(plan_b.CreatePlan(box.location,[]))
                 plans.append(action)
-            plans_box[agent]=(min(plans))
+            index_of_box = plans.index(min(plans))
+            box_chosen = boxes[index_of_box]
+            plans_box[agent]=(box_chosen,min(plans))
+            
     return plans_box
                 
 if __name__ == '__main__':    
@@ -126,12 +129,12 @@ if __name__ == '__main__':
     # Run client.
     try:
         #add when using input from sysin
-        #server_messages = sys.stdin
-        #ToServer('PlanningClient')
+        server_messages = sys.stdin
+        ToServer('PlanningClient')
         #remove when using sysin
-        f=open('../MAExample.lvl','r')
-        server_messages = f.readlines()
-        f.close()
+        #f=open('../MAExample.lvl','r')
+        #server_messages = f.readlines()
+        #f.close()
         #remove until here
         color_dict,initial_state,goal_state = ReadHeaders(server_messages) 
             
@@ -183,24 +186,15 @@ if __name__ == '__main__':
             if State.current_state[row][col-1] != '+' :
                 CurrentState.Neighbours[locations[row][col]].append(locations[row][col-1])
     current_plan = MakePlan()
-    for agent,actions in current_plan.items() :
-        agent.ExecutePlan(cells)
+    for agent,box_cells in current_plan.items() :
+        box = box_cells[0]
+        cells = box_cells[1]
+        agent.ExecutePlan(box,cells)
         
     
-            
-'''plans_box = list()
-for goal in FinalState.GoalAt :
-    boxes = FindBox(goal.color,goal.letter)
-    plans = list()
-    for box in boxes :
-        plan = Plan(box.location,goal.location)
-        action = plan.CreatePlan(box.location,[box.location])
-        plans.append(action)
-    plans_box.append(plans.index(min(plans)))       
-            
-   ''' 
-#for c in current_plan[0] :
-#    print(c) 
-    
+'''for key,value in current_plan.items() :
+    print(key)
+    print(value[0])
+'''    
 #for c in current_plan[1] :
 #    print(c)       
