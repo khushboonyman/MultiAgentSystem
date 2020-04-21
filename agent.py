@@ -1,3 +1,15 @@
+"""
+Created on Wed Apr 15 21:55:26 2020
+@author :
+
+LOOK AT THE COMMENTS REGARDING SYSIN AND FILE, AND CHANGE IT IF YOU WANT TO TEST USING IDE
+OR SERVER, methods that need to be changed are :
+ToServer()
+
+This will display the actions and also update State.current_state. At any point you can display 
+State.current_state to see how the level looks like after any action 
+"""
+
 from location import *
 from state import *    
 import sys
@@ -63,7 +75,6 @@ class Agent :
             CurrentState.FreeCells.remove(boxto)
             return 'Push('+move_dir_agent+','+move_dir_box+')'
         
-        #str(self.location not in CurrentState.FreeCells) )
         return 'NoOp' 
     
     def Pull(self,agtto,box):

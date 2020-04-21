@@ -1,3 +1,16 @@
+'''
+Created on Wed Apr 15 21:55:26 2020
+@author :
+    
+LOOK AT THE COMMENTS REGARDING SYSIN AND FILE, AND CHANGE IT IF YOU WANT TO TEST USING IDE
+OR SERVER. methods that need to be changed are :
+ReadLines()
+if __name__ == '__main__':    <not a method>
+
+This will display the actions and also update State.current_state. At any point you can display 
+State.current_state to see how the level looks like after any action 
+'''
+
 import sys
 import argparse
 import memory
@@ -192,7 +205,11 @@ if __name__ == '__main__':
                 CurrentState.Neighbours[locations[row][col]].append(locations[row][col+1])
             if State.current_state[row][col-1] != '+' :
                 CurrentState.Neighbours[locations[row][col]].append(locations[row][col-1])
+    """This needs to be called again after a plan has been executed"""
     current_plan = MakePlan()
+    """
+    Below loop needs to be modified if there are conflicts
+    """
     for agent,box_cells in current_plan.items() :
         box = box_cells[0]
         cells = box_cells[1]
