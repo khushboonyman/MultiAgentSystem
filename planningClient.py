@@ -12,6 +12,8 @@ State.current_state to see how the level looks like after any action
 '''
 
 import argparse
+
+from goal import Goal
 from misc import memory
 import re
 from tests.HardCoded import *
@@ -113,9 +115,21 @@ def FindAgent(color):
             return agent
     return None
 
+def areAllGoalsAccomplished():
+    # goalsAccomplished = {}
+    # for goal in FinalState.GoalAt:
+    #     goalsAccomplished[goal.letter] = False
+    #     for box in CurrentState.BoxAt:
+    #         if goal.location.x == box.location.x and goal.location.y == box.location.y:
+    #             goalsAccomplished[goal.letter] = True
+    # for goalLetter, accomplished in goalsAccomplished.items():
+    #     if accomplished == False:
+    #         return False
+    return len(FinalState.GoalAt) == 0
+
 
 def MakePlan():
-    plans_box = {}
+    agent_to_box_plans = {}
     for goal in FinalState.GoalAt:
         boxes = FindBox(goal.color, goal.letter)
         agent = FindAgent(goal.color)
@@ -136,9 +150,20 @@ def MakePlan():
                 plans.append(action)
             index_of_box = plans.index(min(plans))
             box_chosen = boxes[index_of_box]
-            plans_box[agent] = (box_chosen, min(plans))
+            if agent in agent_to_box_plans:
+                agent_to_box_plans[agent].append((goal, box_chosen, min(plans)))
+            else:
+                agent_to_box_plans[agent] = [(goal, box_chosen, min(plans))]
 
-    return plans_box
+    min_plan = None
+    agent_to_box_plan = {}
+    for agent, box_plans in agent_to_box_plans.items():
+        for box_plan in box_plans:
+            if not min_plan or len(box_plan[2]) < min_plan:
+                min_plan = len(box_plan[2])
+                agent_to_box_plan[agent] = (box_plan[0], box_plan[1], box_plan[2])
+
+    return agent_to_box_plan
 
 
 if __name__ == '__main__':
@@ -154,10 +179,10 @@ if __name__ == '__main__':
     # Run client.
     try:
         # add when using input from sysin
-        #server_messages = sys.stdin
+        server_messages = sys.stdin
         ToServer('PlanningClient')
         # remove when using sysin
-        server_messages = open('comp17/SAExample.lvl','r')
+        #server_messages = open('comp17/SAExample.lvl','r')
         # f.close()
         # remove until here
         color_dict, initial_state, goal_state = ReadHeaders(server_messages)
@@ -195,7 +220,7 @@ if __name__ == '__main__':
             if pattern_box.fullmatch(goal) is not None:
                 for key, value in color_dict.items():
                     if goal in value:
-                        box = Box(loc, key, goal)
+                        box = Goal(loc, key, goal)
                         FinalState.GoalAt.append(box)
         locations.append(firstlist)
     for row in range(1, MAX_ROW - 1):
@@ -214,20 +239,15 @@ if __name__ == '__main__':
     """
     Below loop needs to be modified if there are conflicts
     """
-    for agent, box_cells in current_plan.items():
-        box = box_cells[0]
-        cells = box_cells[1]
-        agent.ExecutePlan(box, cells)
+    while not areAllGoalsAccomplished():
+        for agent, box_cells in current_plan.items():
+            goal = box_cells[0]
+            box = box_cells[1]
+            cells = box_cells[2]
+            agent.ExecutePlan(box, cells)
+        FinalState.GoalAt.remove(goal)
+        current_plan = MakePlan()
 
-    """This needs to be called again after a plan has been executed"""
-    current_plan = MakePlan()
-    """
-    Below loop needs to be modified if there are conflicts
-    """
-    for agent, box_cells in current_plan.items():
-        box = box_cells[0]
-        cells = box_cells[1]
-        agent.ExecutePlan(box, cells)
 
 # for c in cells :
 #    print(c)

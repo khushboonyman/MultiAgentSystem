@@ -43,7 +43,7 @@ class Agent:
         self.number = number
 
     def __str__(self):
-        return str(self.location) + '\nColor : ' + self.color + '\nLetter : ' + self.number
+        return 'Agent with Number: ' + self.number + ' ' + str(self.location) + ' Color : ' + self.color
 
     def __hash__(self):
         return hash(str(self))

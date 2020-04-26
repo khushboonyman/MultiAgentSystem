@@ -1,7 +1,7 @@
 import location
 
 
-class Box:
+class Goal:
     def __init__(self, location, color, letter):
         self.location = location
         self.color = color
