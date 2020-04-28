@@ -2,7 +2,7 @@
 """
 Created on Sun Apr 19 10:43:22 2020
 
-@author: Bruger
+@author: 
 """
 from queue import PriorityQueue
 from state import *
