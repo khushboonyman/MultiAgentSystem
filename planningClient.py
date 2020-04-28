@@ -154,10 +154,10 @@ if __name__ == '__main__':
     # Run client.
     try:
         # add when using input from sysin
-        #server_messages = sys.stdin
+        server_messages = sys.stdin
         ToServer('PlanningClient')
         # remove when using sysin
-        server_messages = open('comp17/SAExample.lvl','r')
+        #server_messages = open('comp17/SAExample.lvl','r')
         # f.close()
         # remove until here
         color_dict, initial_state, goal_state = ReadHeaders(server_messages)
