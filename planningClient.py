@@ -164,11 +164,21 @@ if __name__ == '__main__':
 
     # Run client.
     try:
+<<<<<<< HEAD
         if server :
             server_messages = sys.stdin
         else :
             server_messages=open('../SAExample.lvl','r')
         ToServer('PlanningClient')
+=======
+        # add when using input from sysin
+        server_messages = sys.stdin
+        ToServer('PlanningClient')
+        # remove when using sysin
+        #server_messages = open('comp17/SAExample.lvl','r')
+        # f.close()
+        # remove until here
+>>>>>>> 493cd5a651dfeb1d968c6ffc94a80f661e13e018
         color_dict, initial_state, goal_state = ReadHeaders(server_messages)
         
         if not server :
