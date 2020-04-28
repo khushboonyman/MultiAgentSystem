@@ -5,41 +5,43 @@ Created on Wed Apr 15 21:55:26 2020
 
 from state import *
 
-class Location :
-    def __init__(self,x=0,y=0):
+
+class Location:
+    def __init__(self, x=0, y=0):
         self.x = x
         self.y = y
-    
-    def __eq__(self,other) :
-        if self.x == other.x and self.y == other.y :
+
+    def __eq__(self, other):
+        if self.x == other.x and self.y == other.y:
             return True
-        else :
+        else:
             return False
-    
-    def __lt__(self,other) :
-        if self.x < other.x :
+
+    def __lt__(self, other):
+        if self.x < other.x:
             return True
-        if self.y < other.y :
-            return True
-        return False
-    
-    def __ne__(self,other) :
-        if self.x != other.x or self.y != other.y :
+        if self.y < other.y:
             return True
         return False
-    
-    def __str__(self) :
-        return 'Location is : '+str(self.x)+','+str(self.y)
-    
-    def __hash__(self) :
+
+    def __ne__(self, other):
+        if self.x != other.x or self.y != other.y:
+            return True
+        return False
+
+    def __str__(self):
+        return 'Location is : ' + str(self.x) + ',' + str(self.y)
+
+    def __hash__(self):
         return hash(str(self))
-        
-    def assign(self,data):
-        #we don't handle edge cases because there are walls on all these edge cells and they will never need to be modified
-        State.current_state[self.x] = State.current_state[self.x][:self.y] + data + State.current_state[self.x][self.y+1:] 
-    
-    def free_cell(self) :
-        self.assign(' ')    
+
+    def assign(self, data):
+        # we don't handle edge cases because there are walls on all these edge cells and they will never need to be modified
+        State.current_state[self.x] = State.current_state[self.x][:self.y] + data + State.current_state[self.x][
+                                                                                    self.y + 1:]
+
+    def free_cell(self):
+        self.assign(' ')
 
     '''def neighbor(self,other):
         if ((self.x == other.x and self.y in [other.y+1,other.y-1]) 
@@ -53,7 +55,3 @@ class Location :
         return False 
         
         '''
-        
-    
-    
-

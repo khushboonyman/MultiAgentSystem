@@ -3,14 +3,18 @@
 Created on Wed Apr 15 21:55:26 2020
 @author :
 """
-class State :
-    current_state=list()
-    
-class CurrentState :
+
+
+class State:
+    current_state = list()
+
+
+class CurrentState:
     AgentAt = list()
     BoxAt = list()
     FreeCells = list()
     Neighbours = {}
-    
-class FinalState :
+
+
+class FinalState:
     GoalAt = list()
