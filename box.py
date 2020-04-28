@@ -1,10 +1,8 @@
-<<<<<<< HEAD
 """
 Created on Wed Apr 15 21:55:26 2020
 @author :
 """
-=======
->>>>>>> c929f0c6c69e649c8d44e034784ed50bec1675d9
+
 import location
 
 

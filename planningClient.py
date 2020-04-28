@@ -2,10 +2,8 @@
 Created on Wed Apr 15 21:55:26 2020
 @author :
     
-LOOK AT THE COMMENTS REGARDING SYSIN AND FILE, AND CHANGE IT IF YOU WANT TO TEST USING IDE
-OR SERVER. methods that need to be changed are :
-ReadLines()
-if __name__ == '__main__':    <not a method>
+change the value of global variable 'server' to True, when running using the server
+When testing it with file, make it False
 
 This will display the actions and also update State.current_state. At any point you can display 
 State.current_state to see how the level looks like after any action 
@@ -14,22 +12,29 @@ State.current_state to see how the level looks like after any action
 import argparse
 from misc import memory
 import re
-from tests.HardCoded import *
 from agent import *
 from box import *
 from plan import *
+import sys
+from collections import OrderedDict 
 
+global server
+server = True
 
 def HandleError(message):
-    print(message, file=sys.stderr, flush=True)
-
+    if server :
+        print(message, file=sys.stderr, flush=True)
+    else :
+        print('ERROR : '+message)
+        
+def ToServer(message):
+    if server :
+        print(message, file=sys.stdout, flush=True)
+    else :
+        print(message)
 
 def Readlines(msg):
-    # add it when using sysin
     return msg.readline().rstrip()
-    # remove it when using sysin
-    # return msg.pop(0).rstrip()
-
 
 def ReadHeaders(messages):
     list_of_colors = ['blue', 'red', 'cyan', 'purple', 'green', 'orange', 'pink', 'grey', 'lightblue', 'brown']
@@ -106,13 +111,18 @@ def FindBox(color, letter):
             boxes.append(box)
     return boxes
 
-
 def FindAgent(color):
     for agent in CurrentState.AgentAt:
         if agent.color == color:
             return agent
     return None
 
+def SortDict(plans_box) :
+    new_plan = OrderedDict()
+    sortedAgents = sorted(plans_box.keys())
+    for sa in sortedAgents :
+        new_plan[sa] = plans_box[sa]
+    return new_plan 
 
 def MakePlan():
     plans_box = {}
@@ -137,10 +147,11 @@ def MakePlan():
             index_of_box = plans.index(min(plans))
             box_chosen = boxes[index_of_box]
             plans_box[agent] = (box_chosen, min(plans))
-
-    return plans_box
-
-
+    final_plan = SortDict(plans_box)
+    return final_plan
+    #return plans_box
+   
+    
 if __name__ == '__main__':
     # Set max memory usage allowed (soft limit).
     parser = argparse.ArgumentParser(description='Client based on planning approach.')
@@ -153,14 +164,15 @@ if __name__ == '__main__':
 
     # Run client.
     try:
-        # add when using input from sysin
-        #server_messages = sys.stdin
+        if server :
+            server_messages = sys.stdin
+        else :
+            server_messages=open('../SAExample.lvl','r')
         ToServer('PlanningClient')
-        # remove when using sysin
-        server_messages = open('comp17/SAExample.lvl','r')
-        # f.close()
-        # remove until here
         color_dict, initial_state, goal_state = ReadHeaders(server_messages)
+        
+        if not server :
+            server_messages.close()
 
     except Exception as ex:
         print('Error parsing level: {}.'.format(repr(ex)), file=sys.stderr, flush=True)
@@ -209,28 +221,56 @@ if __name__ == '__main__':
                 CurrentState.Neighbours[locations[row][col]].append(locations[row][col + 1])
             if State.current_state[row][col - 1] != '+':
                 CurrentState.Neighbours[locations[row][col]].append(locations[row][col - 1])
+    
+    count=0
     """This needs to be called again after a plan has been executed"""
-    current_plan = MakePlan()
-    """
-    Below loop needs to be modified if there are conflicts
-    """
-    for agent, box_cells in current_plan.items():
-        box = box_cells[0]
-        cells = box_cells[1]
-        agent.ExecutePlan(box, cells)
+    while len(FinalState.GoalAt) > 0 and count < 10 :
+        current_plan = MakePlan()
+        agent_numbers = list()
+        total_plan=list()
+        for agent, box_cells in current_plan.items():
+            box = box_cells[0]
+            cells = box_cells[1]
+            ##############################################
+            #print('New box agent')
+            #print(agent)
+            #print(box)
+            #for c in cells :
+            #    print(c)
+            ##############################################
+            an_agent_box_plan = agent.ExecutePlan(box, cells, [])
+            total_plan.append(an_agent_box_plan)
+            agent_numbers.append(int(agent.number))
+            
+        execution_length = len(max(total_plan))
+        total_agents = len(total_plan)
+        no_action = 'NoOp'
+            
+        for el in range(execution_length) :
+            execute = ''
+            for number in range(len(CurrentState.AgentAt)) :
+                if number in agent_numbers :
+                    action = total_plan[number][el]
+                else :
+                    action = no_action
+                
+                if execute == '':
+                    execute = execute + action
+                else :
+                    execute = execute + ';' + action
+                
+            ToServer(execute)
+        
+        for box in CurrentState.BoxAt :
+            if box in FinalState.GoalAt :
+                CurrentState.BoxAt.remove(box)
+                FinalState.GoalAt.remove(box)
+        count+=1
+                
+                
+            
+            
+            
+        
+        
 
-    """This needs to be called again after a plan has been executed"""
-    current_plan = MakePlan()
-    """
-    Below loop needs to be modified if there are conflicts
-    """
-    for agent, box_cells in current_plan.items():
-        box = box_cells[0]
-        cells = box_cells[1]
-        agent.ExecutePlan(box, cells)
-
-# for c in cells :
-#    print(c)
-
-# for c in current_plan[1] :
-#    print(c)

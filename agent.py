@@ -1,13 +1,6 @@
 """
 Created on Wed Apr 15 21:55:26 2020
 @author :
-
-LOOK AT THE COMMENTS REGARDING SYSIN AND FILE, AND CHANGE IT IF YOU WANT TO TEST USING IDE
-OR SERVER, methods that need to be changed are :
-ToServer()
-
-This will display the actions and also update State.current_state. At any point you can display 
-State.current_state to see how the level looks like after any action 
 """
 
 from location import *
@@ -29,12 +22,12 @@ def TranslateToDir(locfrom, locto):
             return 'S'
 
 
-def ToServer(message):
+'''def ToServer(message):
     # remove it with sysin
     # print(message)
     # add it with sysin
     print(message, file=sys.stdout, flush=True)
-
+'''
 
 class Agent:
     def __init__(self, location, color, number):
@@ -47,6 +40,16 @@ class Agent:
 
     def __hash__(self):
         return hash(str(self))
+    
+    def __lt__(self, other):
+        if int(self.number) < int(other.number) :
+            return True
+        return False
+    
+    def __gt__(self, other):
+        if int(self.number) > int(other.number) :
+            return True
+        return False
 
     def Move(self, agtto):
         if (
@@ -98,15 +101,17 @@ class Agent:
 
         return 'NoOp'
 
-    def ExecutePlan(self, box, cells):
+    def ExecutePlan(self, box, cells, to_server):
         if len(cells) <= 1:
-            return
+            return to_server
         cell = cells.pop(0)
         if box.location != cell:
-            ToServer(self.Move(cell))
+            #ToServer(self.Move(cell))
+            to_server.append(self.Move(cell))
         else:
             if cells[0] != self.location:
-                ToServer(self.Push(box, cells[0]))
+                #ToServer(self.Push(box, cells[0]))
+                to_server.append(self.Push(box, cells[0]))
             else:
                 agents_neighbours = CurrentState.Neighbours[self.location]
                 small_frontier = PriorityQueue()
@@ -119,7 +124,10 @@ class Agent:
                     agent_to = small_frontier.get()[1]
                     action = self.Pull(agent_to, box)
                     if action != 'NoOp':
-                        ToServer(action)
+                        #ToServer(action)
+                        to_server.append(action)
                         break
 
-        self.ExecutePlan(box, cells)
+        return self.ExecutePlan(box, cells, to_server)
+
+    
