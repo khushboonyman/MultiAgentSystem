@@ -5,8 +5,8 @@ Created on Wed Apr 15 21:55:26 2020
 change the value of global variable 'server' to True, when running using the server
 When testing it with file, make it False
 
-This will display the actions and also update State.current_state. At any point you can display 
-State.current_state to see how the level looks like after any action 
+This will display the actions and also update State.current_level. At any point you can display 
+State.current_level to see how the level looks like after any action 
 '''
 
 import argparse
@@ -83,7 +83,7 @@ def ReadHeaders(messages):
     if line == '#initial':
         line = Readlines(messages)
         initial_state = list()
-        while line[0] == '+':
+        while line[0] != '#':
             initial_state.append(line)
             line = Readlines(messages)
     else:
@@ -92,7 +92,7 @@ def ReadHeaders(messages):
     if line == '#goal':
         line = Readlines(messages)
         goal_state = list()
-        while line[0] == '+':
+        while line[0] != '#':
             goal_state.append(line)
             line = Readlines(messages)
     else:
@@ -104,52 +104,54 @@ def ReadHeaders(messages):
     return color_dict, initial_state, goal_state
 
 
-def FindBox(color, letter):
+def FindBox(color):
     boxes = list()
     for box in CurrentState.BoxAt:
-        if box.color == color and box.letter == letter:
+        if box.color == color:
             boxes.append(box)
     return boxes
 
-def FindAgent(color):
-    for agent in CurrentState.AgentAt:
-        if agent.color == color:
-            return agent
-    return None
-
-def SortDict(plans_box) :
-    new_plan = OrderedDict()
-    sortedAgents = sorted(plans_box.keys())
-    for sa in sortedAgents :
-        new_plan[sa] = plans_box[sa]
-    return new_plan 
+def FindGoal(color,letter):
+    goals = list()
+    for box in FinalState.GoalAt:
+        if box.color == color and box.letter == letter:
+            goals.append(box)
+    return goals
 
 def MakePlan():
     plans_box = {}
-    for goal in FinalState.GoalAt:
-        boxes = FindBox(goal.color, goal.letter)
-        agent = FindAgent(goal.color)
-        if agent is not None:
-            plans = list()
-            for box in boxes:
+    for agent in CurrentState.AgentAt :
+        boxes = FindBox(agent.color)
+        min_plan_length = MAX_ROW*MAX_COL
+        for box in boxes :
+            goals = FindGoal(box.color, box.letter)
+            for goal in goals :
                 # Plan for the agent to reach box
                 plan_a = Plan(agent.location, box.location)
                 # Plan for the box to reach goal
                 plan_b = Plan(box.location, goal.location)
-                action = []
+                path = []
                 if plan_a.CreatePlan(agent.location):
                     plan_a.plan.reverse()
-                    action.extend(plan_a.plan)
+                    path.extend(plan_a.plan)
                 if plan_b.CreatePlan(box.location):
                     plan_b.plan.reverse()
-                    action.extend(plan_b.plan)
-                plans.append(action)
-            index_of_box = plans.index(min(plans))
-            box_chosen = boxes[index_of_box]
-            plans_box[agent] = (box_chosen, min(plans))
-    final_plan = SortDict(plans_box)
-    return final_plan
-    #return plans_box
+                    path.extend(plan_b.plan)
+                if len(path) < min_plan_length :
+                    min_plan_length = len(path)
+                    plan_chosen = path
+                    box_chosen = box
+        plans_box[agent] = (box_chosen, plan_chosen)
+        ##############################debug##################
+        #print(index_of_box)
+        #print(box_chosen)
+        #for p in plan_chosen :
+        #    print(p)
+        #    print('plan')
+        #    for i in p :
+        #        print(i)                    
+        #####################################################
+    return plans_box
    
     
 if __name__ == '__main__':
@@ -167,7 +169,7 @@ if __name__ == '__main__':
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('../MAExample.lvl','r')
+            server_messages=open('../levels/friendofDFS.lvl','r')
         ToServer('PlanningClient')
         color_dict, initial_state, goal_state = ReadHeaders(server_messages)
         
@@ -178,19 +180,17 @@ if __name__ == '__main__':
         print('Error parsing level: {}.'.format(repr(ex)), file=sys.stderr, flush=True)
         sys.exit(1)
 
-    # below line is only for testing purpose
-    # HardCodedForDefault()
-    State.current_state = initial_state
+    State.current_level = initial_state
     MAX_ROW = len(initial_state)
-    MAX_COL = len(initial_state[0])
+    MAX_COL = len(max(initial_state))
     locations = list()
     pattern_agent = re.compile("[0-9]+")
     pattern_box = re.compile("[A-Z]+")
-    for i_index, row in enumerate(State.current_state):
-        firstlist = list()
+    for i_index, row in enumerate(State.current_level):
+        initial_loc_list = list()
         for j_index, col in enumerate(row):
             loc = Location(i_index, j_index)
-            firstlist.append(loc)
+            initial_loc_list.append(loc)
             if col == ' ':
                 CurrentState.FreeCells.append(loc)
             if pattern_agent.fullmatch(col) is not None:
@@ -209,22 +209,37 @@ if __name__ == '__main__':
                     if goal in value:
                         box = Box(loc, key, goal)
                         FinalState.GoalAt.append(box)
-        locations.append(firstlist)
+        locations.append(initial_loc_list)
     for row in range(1, MAX_ROW - 1):
         for col in range(1, MAX_COL - 1):
             CurrentState.Neighbours[locations[row][col]] = list()
-            if State.current_state[row + 1][col] != '+':
+            if State.current_level[row + 1][col] != '+':
                 CurrentState.Neighbours[locations[row][col]].append(locations[row + 1][col])
-            if State.current_state[row - 1][col] != '+':
+            if State.current_level[row - 1][col] != '+':
                 CurrentState.Neighbours[locations[row][col]].append(locations[row - 1][col])
-            if State.current_state[row][col + 1] != '+':
+            if State.current_level[row][col + 1] != '+':
                 CurrentState.Neighbours[locations[row][col]].append(locations[row][col + 1])
-            if State.current_state[row][col - 1] != '+':
+            if State.current_level[row][col - 1] != '+':
                 CurrentState.Neighbours[locations[row][col]].append(locations[row][col - 1])
-    
+    CurrentState.AgentAt.sort()
+    CurrentState.BoxAt.sort()
+    FinalState.GoalAt.sort()
+###########################################one time execution###################################################    
     count=0
+
+##########################################debugging start##############################################################
+#    print('INITIAL GOALS : ')
+#    for g in FinalState.GoalAt :
+#        print(g)
+#    print('INITIAL BOXES : ')
+#    for b in CurrentState.BoxAt :
+#        print(b)
+#    print('INITIAL AGENTS : ')
+#    for a in CurrentState.AgentAt :
+#        print(a)
+##########################################debugging end############################################################    
     """This needs to be called again after a plan has been executed"""
-    while len(FinalState.GoalAt) > 0 and count < 10 :
+    while len(FinalState.GoalAt) > 0 and count < 5 :
         current_plan = MakePlan()
         agent_numbers = list()
         total_plan=list()
@@ -255,7 +270,7 @@ if __name__ == '__main__':
                     action = no_action
                 
                 if execute == '':
-                    execute = execute + action
+                    execute = action
                 else :
                     execute = execute + ';' + action
                 

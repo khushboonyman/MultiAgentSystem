@@ -22,13 +22,6 @@ def TranslateToDir(locfrom, locto):
             return 'S'
 
 
-'''def ToServer(message):
-    # remove it with sysin
-    # print(message)
-    # add it with sysin
-    print(message, file=sys.stdout, flush=True)
-'''
-
 class Agent:
     def __init__(self, location, color, number):
         self.location = location
@@ -36,25 +29,24 @@ class Agent:
         self.number = number
 
     def __str__(self):
-        return str(self.location) + '\nColor : ' + self.color + '\nLetter : ' + self.number
+        return str(self.location) + ' Color : ' + self.color + ' Letter : ' + self.number
 
     def __hash__(self):
         return hash(str(self))
     
     def __lt__(self, other):
-        if int(self.number) < int(other.number) :
+        if self.number < other.number :
             return True
         return False
     
     def __gt__(self, other):
-        if int(self.number) > int(other.number) :
+        if self.number > other.number :
             return True
         return False
 
     def Move(self, agtto):
-        if (
-                self.location != agtto and agtto in CurrentState.FreeCells and self.location not in CurrentState.FreeCells and
-                agtto in CurrentState.Neighbours[self.location]):
+        if (self.location != agtto and agtto in CurrentState.FreeCells and self.location not in CurrentState.FreeCells and
+            agtto in CurrentState.Neighbours[self.location]):
             move_dir_agent = TranslateToDir(self.location, agtto)
             self.location.free_cell()
             CurrentState.FreeCells.append(self.location)

@@ -6,8 +6,7 @@ Created on Wed Apr 15 21:55:26 2020
 
 
 class State:
-    current_state = list()
-
+    current_level = list()
 
 class CurrentState:
     AgentAt = list()
