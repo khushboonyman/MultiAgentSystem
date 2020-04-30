@@ -19,7 +19,7 @@ import sys
 from collections import OrderedDict 
 
 global server
-server = False
+server = True
 
 def HandleError(message):
     if server :
@@ -131,26 +131,18 @@ def MakePlan():
                 # Plan for the box to reach goal
                 plan_b = Plan(box.location, goal.location)
                 path = []
-                if plan_a.CreatePlan(agent.location):
+                agent_has_plan = plan_a.CreatePlan(agent.location, agent.location)
+                box_has_plan = plan_b.CreatePlan(box.location, agent.location)
+                if agent_has_plan and box_has_plan :
                     plan_a.plan.reverse()
                     path.extend(plan_a.plan)
-                if plan_b.CreatePlan(box.location):
                     plan_b.plan.reverse()
                     path.extend(plan_b.plan)
-                if len(path) < min_plan_length :
+                if len(path) < min_plan_length and len(path) > 0 :
                     min_plan_length = len(path)
                     plan_chosen = path
-                    box_chosen = box
-        plans_box[agent] = (box_chosen, plan_chosen)
-        ##############################debug##################
-        #print(index_of_box)
-        #print(box_chosen)
-        #for p in plan_chosen :
-        #    print(p)
-        #    print('plan')
-        #    for i in p :
-        #        print(i)                    
-        #####################################################
+                    box_chosen = box                    
+                    plans_box[agent] = (box, path)
     return plans_box
    
     
@@ -164,12 +156,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     memory.max_usage = args.max_memory
 
-    # Run client.
     try:
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('../levels/friendofDFS.lvl','r')
+            server_messages=open('../levels/Tested/friendofDFS.lvl','r')
         ToServer('PlanningClient')
         color_dict, initial_state, goal_state = ReadHeaders(server_messages)
         
@@ -182,7 +173,7 @@ if __name__ == '__main__':
 
     State.current_level = initial_state
     MAX_ROW = len(initial_state)
-    MAX_COL = len(max(initial_state))
+    MAX_COL = len(max(initial_state, key=len))
     locations = list()
     pattern_agent = re.compile("[0-9]+")
     pattern_box = re.compile("[A-Z]+")
@@ -191,7 +182,7 @@ if __name__ == '__main__':
         for j_index, col in enumerate(row):
             loc = Location(i_index, j_index)
             initial_loc_list.append(loc)
-            if col == ' ':
+            if col == ' ' :
                 CurrentState.FreeCells.append(loc)
             if pattern_agent.fullmatch(col) is not None:
                 for key, value in color_dict.items():
@@ -211,48 +202,39 @@ if __name__ == '__main__':
                         FinalState.GoalAt.append(box)
         locations.append(initial_loc_list)
     for row in range(1, MAX_ROW - 1):
-        for col in range(1, MAX_COL - 1):
-            CurrentState.Neighbours[locations[row][col]] = list()
-            if State.current_level[row + 1][col] != '+':
-                CurrentState.Neighbours[locations[row][col]].append(locations[row + 1][col])
-            if State.current_level[row - 1][col] != '+':
-                CurrentState.Neighbours[locations[row][col]].append(locations[row - 1][col])
-            if State.current_level[row][col + 1] != '+':
-                CurrentState.Neighbours[locations[row][col]].append(locations[row][col + 1])
-            if State.current_level[row][col - 1] != '+':
-                CurrentState.Neighbours[locations[row][col]].append(locations[row][col - 1])
+        START_COL = State.current_level[row].index('+')+1
+        END_COL = len(State.current_level[row])-1
+        if START_COL < END_COL :
+            for col in range(START_COL, END_COL):
+                try :                
+                    CurrentState.Neighbours[locations[row][col]] = list()
+                    if State.current_level[row + 1][col] != '+':
+                        CurrentState.Neighbours[locations[row][col]].append(locations[row + 1][col])
+                    if State.current_level[row - 1][col] != '+':
+                        CurrentState.Neighbours[locations[row][col]].append(locations[row - 1][col])
+                    if State.current_level[row][col + 1] != '+':
+                        CurrentState.Neighbours[locations[row][col]].append(locations[row][col + 1])
+                    if State.current_level[row][col - 1] != '+':
+                        CurrentState.Neighbours[locations[row][col]].append(locations[row][col - 1])
+                except Exception as ex :
+                    print('Index row =',row,'col =',col,file=sys.stderr, flush=True)
+                    print('Index error {}'.format(repr(ex)),file=sys.stderr, flush=True)
+                    sys.exit(1)
+                    
     CurrentState.AgentAt.sort()
     CurrentState.BoxAt.sort()
     FinalState.GoalAt.sort()
+    count=0  #for testing the below line, when it runs infinitely. Needs to be removed in final execution
 ###########################################one time execution###################################################    
-    count=0
-
-##########################################debugging start##############################################################
-#    print('INITIAL GOALS : ')
-#    for g in FinalState.GoalAt :
-#        print(g)
-#    print('INITIAL BOXES : ')
-#    for b in CurrentState.BoxAt :
-#        print(b)
-#    print('INITIAL AGENTS : ')
-#    for a in CurrentState.AgentAt :
-#        print(a)
-##########################################debugging end############################################################    
-    """This needs to be called again after a plan has been executed"""
-    while len(FinalState.GoalAt) > 0 and count < 5 :
+   
+    """This gets called until any goal is available"""
+    while len(FinalState.GoalAt) > 0 and count < 100:
         current_plan = MakePlan()
         agent_numbers = list()
         total_plan=list()
         for agent, box_cells in current_plan.items():
             box = box_cells[0]
             cells = box_cells[1]
-            ##############################################
-            #print('New box agent')
-            #print(agent)
-            #print(box)
-            #for c in cells :
-            #    print(c)
-            ##############################################
             an_agent_box_plan = agent.ExecutePlan(box, cells, [])
             total_plan.append(an_agent_box_plan)
             agent_numbers.append(int(agent.number))
@@ -281,6 +263,8 @@ if __name__ == '__main__':
                 CurrentState.BoxAt.remove(box)
                 FinalState.GoalAt.remove(box)
         count+=1
+    
+    ToServer('#Memory used ' + str(memory.get_usage()) + ' MB')
                 
                 
             

@@ -29,15 +29,19 @@ class Plan():
     def Heuristic(self, location):
         return abs(self.end.x - location.x) + abs(self.end.y - location.y)
 
-    def CreatePlan(self, loc):
+    def CreatePlan(self, loc, agent_location):
         if loc == self.end:
-            return True
-
-        leaves = CurrentState.Neighbours[loc]
+            return True        
+        try :
+            leaves = CurrentState.Neighbours[loc]
+        except Exception as ex :
+            print(str(loc)+' {}'.format(repr(ex)),file=sys.stderr, flush=True)
+            sys.exit(1)
+            
         frontier = PriorityQueue()
 
         for leaf in leaves:
-            if leaf not in self.frontier_set:
+            if leaf not in self.frontier_set and (leaf in CurrentState.FreeCells or leaf==self.end or leaf == agent_location) :
                 try:
                     heur = self.Heuristic(leaf)
                     frontier.put((heur, leaf))
@@ -55,6 +59,6 @@ class Plan():
         else:
             while not frontier.empty():
                 leaf = frontier.get()[1]
-                if self.CreatePlan(leaf):
+                if self.CreatePlan(leaf, agent_location):
                     self.plan.append(leaf)
                     return True
