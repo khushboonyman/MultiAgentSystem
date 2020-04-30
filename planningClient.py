@@ -18,6 +18,9 @@ from plan import *
 import sys
 from collections import OrderedDict 
 
+x=2500
+sys.setrecursionlimit(1500)
+
 global server
 server = True
 
@@ -35,6 +38,9 @@ def ToServer(message):
 
 def Readlines(msg):
     return msg.readline().rstrip()
+
+def FromServer() :
+    return sys.stdin.readline().rstrip()
 
 def ReadHeaders(messages):
     list_of_colors = ['blue', 'red', 'cyan', 'purple', 'green', 'orange', 'pink', 'grey', 'lightblue', 'brown']
@@ -160,7 +166,7 @@ if __name__ == '__main__':
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('../levels/Tested/friendofDFS.lvl','r')
+            server_messages=open('levels/SAlabyrinthOfStBertin.lvl','r')
         ToServer('PlanningClient')
         color_dict, initial_state, goal_state = ReadHeaders(server_messages)
         
@@ -257,6 +263,7 @@ if __name__ == '__main__':
                     execute = execute + ';' + action
                 
             ToServer(execute)
+            ToServer('#'+FromServer())
         
         for box in CurrentState.BoxAt :
             if box in FinalState.GoalAt :
