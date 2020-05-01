@@ -21,7 +21,6 @@ def TranslateToDir(locfrom, locto):
         else:
             return 'S'
 
-
 class Agent:
     def __init__(self, location, color, number):
         self.location = location
@@ -43,6 +42,9 @@ class Agent:
         if self.number > other.number :
             return True
         return False
+    
+    def NoOp(self) :
+        return 'NoOp'
 
     def Move(self, agtto):
         if (self.location != agtto and agtto in CurrentState.FreeCells and self.location not in CurrentState.FreeCells and
@@ -55,7 +57,7 @@ class Agent:
             CurrentState.FreeCells.remove(self.location)
             return 'Move(' + move_dir_agent + ')'
 
-        return 'NoOp'
+        return self.NoOp()
 
     def Push(self, box, boxto):
         if (self.location != boxto and box.location != boxto and boxto in CurrentState.FreeCells and
@@ -73,7 +75,7 @@ class Agent:
             CurrentState.FreeCells.remove(boxto)
             return 'Push(' + move_dir_agent + ',' + move_dir_box + ')'
 
-        return 'NoOp'
+        return self.NoOp()
 
     def Pull(self, agtto, box):
         if (self.location != agtto and box.location != self.location and agtto in CurrentState.FreeCells and
@@ -91,35 +93,26 @@ class Agent:
             CurrentState.FreeCells.remove(agtto)
             return 'Pull(' + move_dir_agent + ',' + curr_dir_box + ')'
 
-        return 'NoOp'
+        return self.NoOp()
 
-    def ExecutePlan(self, box, cells, to_server):
-        if len(cells) <= 1:
-            return to_server
-        cell = cells.pop(0)
-        if box.location != cell:
-            #ToServer(self.Move(cell))
-            to_server.append(self.Move(cell))
+    def PrepareAction(self, box, cell1, cell2, goal_loc):
+        if box.location != cell1:
+            return self.Move(cell1)
         else:
-            if cells[0] != self.location:
-                #ToServer(self.Push(box, cells[0]))
-                to_server.append(self.Push(box, cells[0]))
+            if cell2 != self.location:
+                return self.Push(box, cell2)
             else:
                 agents_neighbours = CurrentState.Neighbours[self.location]
                 small_frontier = PriorityQueue()
-                goal_loc = cells[len(cells) - 1]
                 for each_neighbour in agents_neighbours:
-                    # this needs to be investigated for complex levels
                     small_heur = -1 * (abs(each_neighbour.x - goal_loc.x) + abs(each_neighbour.y - goal_loc.y))
                     small_frontier.put((small_heur, each_neighbour))
                 while not small_frontier.empty():
                     agent_to = small_frontier.get()[1]
                     action = self.Pull(agent_to, box)
-                    if action != 'NoOp':
-                        #ToServer(action)
-                        to_server.append(action)
-                        break
+                    if action != self.NoOp():
+                        return action
+                return self.NoOp()
 
-        return self.ExecutePlan(box, cells, to_server)
 
     

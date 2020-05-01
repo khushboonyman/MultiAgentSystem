@@ -22,7 +22,7 @@ x=2500
 sys.setrecursionlimit(1500)
 
 global server
-server = True
+server = False
 
 def HandleError(message):
     if server :
@@ -166,7 +166,7 @@ if __name__ == '__main__':
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('levels/SAlabyrinthOfStBertin.lvl','r')
+            server_messages=open('levels/Tested/Example.lvl','r')
         ToServer('PlanningClient')
         color_dict, initial_state, goal_state = ReadHeaders(server_messages)
         
@@ -227,43 +227,35 @@ if __name__ == '__main__':
                     print('Index error {}'.format(repr(ex)),file=sys.stderr, flush=True)
                     sys.exit(1)
                     
-    CurrentState.AgentAt.sort()
-    CurrentState.BoxAt.sort()
-    FinalState.GoalAt.sort()
     count=0  #for testing the below line, when it runs infinitely. Needs to be removed in final execution
 ###########################################one time execution###################################################    
-   
+    no_action = 'NoOp'
+    total_agents = len(CurrentState.AgentAt)
     """This gets called until any goal is available"""
     while len(FinalState.GoalAt) > 0 and count < 100:
         current_plan = MakePlan()
-        agent_numbers = list()
-        total_plan=list()
-        for agent, box_cells in current_plan.items():
-            box = box_cells[0]
-            cells = box_cells[1]
-            an_agent_box_plan = agent.ExecutePlan(box, cells, [])
-            total_plan.append(an_agent_box_plan)
-            agent_numbers.append(int(agent.number))
-            
-        execution_length = len(max(total_plan))
-        total_agents = len(total_plan)
-        no_action = 'NoOp'
-            
-        for el in range(execution_length) :
-            execute = ''
-            for number in range(len(CurrentState.AgentAt)) :
-                if number in agent_numbers :
-                    action = total_plan[number][el]
-                else :
-                    action = no_action
-                
-                if execute == '':
-                    execute = action
-                else :
-                    execute = execute + ';' + action
-                
+        combined_actions = [no_action]*total_agents                
+        while True :
+            cont = False
+            for agent, box_cells in current_plan.items():
+                box = box_cells[0]
+                cells = box_cells[1]
+                if len(cells) > 1 :
+                    cell1 = cells.pop(0)
+                    cell2 = cells[0]
+                    goal_loc = cells[-1]
+                    cont = True
+                    an_agent_action = agent.PrepareAction(box, cell1, cell2, goal_loc)
+                    combined_actions[int(agent.number)] = an_agent_action
+            if not cont :
+                break
+            execute = ';'.join(combined_actions)
             ToServer(execute)
-            ToServer('#'+FromServer())
+            if server :
+                step_succeed = FromServer()
+                if not step_succeed :
+                    ToServer('#Failed for'+execute)
+                    sys.exit(1)
         
         for box in CurrentState.BoxAt :
             if box in FinalState.GoalAt :

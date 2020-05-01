@@ -1,0 +1,17 @@
+#domain
+hospital
+#levelname
+stupid
+#colors
+blue: 0, A, K
+#initial
+++++++++
++0A K  +
+++    ++
+++++++++
+#goal
+++++++++
++     A+
+++    ++
+++++++++
+#end
