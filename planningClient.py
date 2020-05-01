@@ -109,7 +109,6 @@ def ReadHeaders(messages):
 
     return color_dict, initial_state, goal_state
 
-
 def FindBox(color):
     boxes = list()
     for box in CurrentState.BoxAt:
@@ -166,7 +165,7 @@ if __name__ == '__main__':
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('levels/Tested/Example.lvl','r')
+            server_messages=open('levels/SADangerBot.lvl','r')
         ToServer('PlanningClient')
         color_dict, initial_state, goal_state = ReadHeaders(server_messages)
         
@@ -212,16 +211,17 @@ if __name__ == '__main__':
         END_COL = len(State.current_level[row])-1
         if START_COL < END_COL :
             for col in range(START_COL, END_COL):
-                try :                
-                    CurrentState.Neighbours[locations[row][col]] = list()
-                    if State.current_level[row + 1][col] != '+':
-                        CurrentState.Neighbours[locations[row][col]].append(locations[row + 1][col])
-                    if State.current_level[row - 1][col] != '+':
-                        CurrentState.Neighbours[locations[row][col]].append(locations[row - 1][col])
-                    if State.current_level[row][col + 1] != '+':
-                        CurrentState.Neighbours[locations[row][col]].append(locations[row][col + 1])
-                    if State.current_level[row][col - 1] != '+':
-                        CurrentState.Neighbours[locations[row][col]].append(locations[row][col - 1])
+                try :
+                    if State.current_level[row][col] != '+' :                        
+                        CurrentState.Neighbours[locations[row][col]] = list()
+                        if len(State.current_level[row + 1]) > col and State.current_level[row + 1][col] != '+':
+                            CurrentState.Neighbours[locations[row][col]].append(locations[row + 1][col])
+                        if len(State.current_level[row - 1]) > col and State.current_level[row - 1][col] != '+':
+                            CurrentState.Neighbours[locations[row][col]].append(locations[row - 1][col])
+                        if State.current_level[row][col + 1] != '+':
+                            CurrentState.Neighbours[locations[row][col]].append(locations[row][col + 1])
+                        if State.current_level[row][col - 1] != '+':
+                            CurrentState.Neighbours[locations[row][col]].append(locations[row][col - 1])
                 except Exception as ex :
                     print('Index row =',row,'col =',col,file=sys.stderr, flush=True)
                     print('Index error {}'.format(repr(ex)),file=sys.stderr, flush=True)
