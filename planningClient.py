@@ -22,7 +22,7 @@ x=2500
 sys.setrecursionlimit(1500)
 
 global server
-server = False
+server = True
 
 def HandleError(message):
     if server :
@@ -123,31 +123,28 @@ def FindGoal(color,letter):
             goals.append(box)
     return goals
 
-def MakePlan():
-    plans_box = {}
-    for agent in CurrentState.AgentAt :
-        boxes = FindBox(agent.color)
-        min_plan_length = MAX_ROW*MAX_COL
-        for box in boxes :
-            goals = FindGoal(box.color, box.letter)
-            for goal in goals :
-                # Plan for the agent to reach box
-                plan_a = Plan(agent.location, box.location)
-                # Plan for the box to reach goal
-                plan_b = Plan(box.location, goal.location)
-                path = []
-                agent_has_plan = plan_a.CreatePlan(agent.location, agent.location)
-                box_has_plan = plan_b.CreatePlan(box.location, agent.location)
-                if agent_has_plan and box_has_plan :
-                    plan_a.plan.reverse()
-                    path.extend(plan_a.plan)
-                    plan_b.plan.reverse()
-                    path.extend(plan_b.plan)
-                if len(path) < min_plan_length and len(path) > 0 :
-                    min_plan_length = len(path)
-                    plan_chosen = path
-                    box_chosen = box                    
-                    plans_box[agent] = (box, path)
+def MakePlan(agent):
+    plans_box = ()
+    boxes = FindBox(agent.color)
+    min_plan_length = MAX_ROW*MAX_COL
+    for box in boxes :
+        goals = FindGoal(box.color, box.letter)
+        for goal in goals :
+            plan_a = Plan(agent.location, box.location) # Plan for the agent to reach box
+            plan_b = Plan(box.location, goal.location) # Plan for the box to reach goal
+            path = []
+            agent_has_plan = plan_a.CreatePlan(agent.location, agent.location)
+            box_has_plan = plan_b.CreatePlan(box.location, agent.location)
+            if agent_has_plan and box_has_plan :
+                plan_a.plan.reverse()
+                path.extend(plan_a.plan)
+                plan_b.plan.reverse()
+                path.extend(plan_b.plan)
+            if len(path) < min_plan_length and len(path) > 0 :
+                min_plan_length = len(path)
+                plan_chosen = path
+                box_chosen = box                    
+                plans_box = (box, path)
     return plans_box
    
     
@@ -165,7 +162,7 @@ if __name__ == '__main__':
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('levels/SADangerBot.lvl','r')
+            server_messages=open('levels/Tested/SAExample.lvl','r')
         ToServer('PlanningClient')
         color_dict, initial_state, goal_state = ReadHeaders(server_messages)
         
@@ -233,7 +230,12 @@ if __name__ == '__main__':
     total_agents = len(CurrentState.AgentAt)
     """This gets called until any goal is available"""
     while len(FinalState.GoalAt) > 0 and count < 100:
-        current_plan = MakePlan()
+        current_plan = {}
+        for agent in CurrentState.AgentAt :
+            plan_agent = MakePlan(agent)
+            if len(plan_agent) > 0 :
+                current_plan[agent] = plan_agent 
+            
         combined_actions = [no_action]*total_agents                
         while True :
             cont = False
