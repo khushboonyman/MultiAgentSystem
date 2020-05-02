@@ -3,15 +3,15 @@ hospital
 #levelname
 stupid
 #colors
-blue: 0, A, K
+blue: 0, 1, A, K
 #initial
 ++++++++
 +0A K  +
-++    ++
+++  1 ++
 ++++++++
 #goal
 ++++++++
 +     A+
-++    ++
+++  K ++
 ++++++++
 #end

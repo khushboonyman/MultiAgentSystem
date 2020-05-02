@@ -16,19 +16,21 @@ from agent import *
 from box import *
 from plan import *
 import sys
-from collections import OrderedDict 
 
 x=2500
-sys.setrecursionlimit(1500)
+sys.setrecursionlimit(x)
 
 global server
 server = True
+global limit #this is the limit on size of rows and columns
+limit = 50
 
 def HandleError(message):
     if server :
         print(message, file=sys.stderr, flush=True)
     else :
         print('ERROR : '+message)
+    sys.exit(1)
         
 def ToServer(message):
     if server :
@@ -40,7 +42,7 @@ def Readlines(msg):
     return msg.readline().rstrip()
 
 def FromServer() :
-    return sys.stdin.readline().rstrip()
+    return sys.stdin.readline()
 
 def ReadHeaders(messages):
     list_of_colors = ['blue', 'red', 'cyan', 'purple', 'green', 'orange', 'pink', 'grey', 'lightblue', 'brown']
@@ -62,27 +64,23 @@ def ReadHeaders(messages):
         HandleError('Level name is missing')
 
     line = Readlines(messages)
-    added = list()
+    added = set()
     if line == '#colors':
         color_dict = {}
         while True:
             line = Readlines(messages)
+            if line[0] == '#' :
+                break               
             color_data = re.split(', |: |\s', line)
             if color_data[0] in list_of_colors:
-                if color_data[0] in color_dict.keys():
-                    HandleError('Color is repeated')
-                else:
-                    for box_or_agent in color_data:
-                        if box_or_agent in added:
-                            HandleError('Box or agent has already been specified')
-                        else:
-                            added.append(box_or_agent)
-                    color_dict[color_data[0]] = color_data[1:]
+                for color_agent_box in color_data:
+                    if color_agent_box in added:
+                        HandleError('Color, agent or box has already been specified')
+                    else:
+                        added.add(color_agent_box)
+                color_dict[color_data[0]] = color_data[1:]
             else:
-                if line[0] == '#':
-                    break
-                else:
-                    HandleError('Unacceptable color')
+                HandleError('Unacceptable color')                   
     else:
         HandleError('Colors missing')
 
@@ -98,29 +96,33 @@ def ReadHeaders(messages):
     if line == '#goal':
         line = Readlines(messages)
         goal_state = list()
+        row_index = 0
         while line[0] != '#':
             goal_state.append(line)
+            if len(line) != len(initial_state[row_index]) :
+                HandleError('Initial state and goal state mismatch on line '+str(row_index))
             line = Readlines(messages)
+            row_index+=1
     else:
         HandleError('Goal state missing')
-
+            
     if line != '#end':
         HandleError('End missing')
 
     return color_dict, initial_state, goal_state
 
 def FindBox(color):
-    boxes = list()
+    boxes = set()
     for box in CurrentState.BoxAt:
         if box.color == color:
-            boxes.append(box)
+            boxes.add(box)
     return boxes
 
 def FindGoal(color,letter):
-    goals = list()
+    goals = set()
     for box in FinalState.GoalAt:
         if box.color == color and box.letter == letter:
-            goals.append(box)
+            goals.add(box)
     return goals
 
 def MakePlan(agent):
@@ -142,12 +144,9 @@ def MakePlan(agent):
                 path.extend(plan_b.plan)
             if len(path) < min_plan_length and len(path) > 0 :
                 min_plan_length = len(path)
-                plan_chosen = path
-                box_chosen = box                    
                 plans_box = (box, path)
     return plans_box
-   
-    
+       
 if __name__ == '__main__':
     # Set max memory usage allowed (soft limit).
     parser = argparse.ArgumentParser(description='Client based on planning approach.')
@@ -162,28 +161,32 @@ if __name__ == '__main__':
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('levels/Tested/SAExample.lvl','r')
+            server_messages=open('levels/Tested/MAExample.lvl','r')
         ToServer('PlanningClient')
-        color_dict, initial_state, goal_state = ReadHeaders(server_messages)
+        color_dict, State.current_level, goal_state = ReadHeaders(server_messages)
         
         if not server :
             server_messages.close()
 
     except Exception as ex:
-        print('Error parsing level: {}.'.format(repr(ex)), file=sys.stderr, flush=True)
-        sys.exit(1)
+        HandleError('Error parsing level: {}.'.format(repr(ex)))
 
-    State.current_level = initial_state
-    MAX_ROW = len(initial_state)
-    MAX_COL = len(max(initial_state, key=len))
+    MAX_ROW = len(State.current_level)
+    if MAX_ROW > limit :
+        HandleError('Too many rows')        
+    
+    MAX_COL = len(max(State.current_level, key=len))
+    if MAX_COL > limit :
+        HandleError('Too many columns')
+        
     locations = list()
     pattern_agent = re.compile("[0-9]+")
     pattern_box = re.compile("[A-Z]+")
     for i_index, row in enumerate(State.current_level):
-        initial_loc_list = list()
+        locations_of_a_row = list()
         for j_index, col in enumerate(row):
             loc = Location(i_index, j_index)
-            initial_loc_list.append(loc)
+            locations_of_a_row.append(loc)
             if col == ' ' :
                 CurrentState.FreeCells.append(loc)
             if pattern_agent.fullmatch(col) is not None:
@@ -202,7 +205,8 @@ if __name__ == '__main__':
                     if goal in value:
                         box = Box(loc, key, goal)
                         FinalState.GoalAt.append(box)
-        locations.append(initial_loc_list)
+        locations.append(locations_of_a_row)
+        
     for row in range(1, MAX_ROW - 1):
         START_COL = State.current_level[row].index('+')+1
         END_COL = len(State.current_level[row])-1
@@ -210,19 +214,17 @@ if __name__ == '__main__':
             for col in range(START_COL, END_COL):
                 try :
                     if State.current_level[row][col] != '+' :                        
-                        CurrentState.Neighbours[locations[row][col]] = list()
+                        CurrentState.Neighbours[locations[row][col]] = set()
                         if len(State.current_level[row + 1]) > col and State.current_level[row + 1][col] != '+':
-                            CurrentState.Neighbours[locations[row][col]].append(locations[row + 1][col])
+                            CurrentState.Neighbours[locations[row][col]].add(locations[row + 1][col])
                         if len(State.current_level[row - 1]) > col and State.current_level[row - 1][col] != '+':
-                            CurrentState.Neighbours[locations[row][col]].append(locations[row - 1][col])
+                            CurrentState.Neighbours[locations[row][col]].add(locations[row - 1][col])
                         if State.current_level[row][col + 1] != '+':
-                            CurrentState.Neighbours[locations[row][col]].append(locations[row][col + 1])
+                            CurrentState.Neighbours[locations[row][col]].add(locations[row][col + 1])
                         if State.current_level[row][col - 1] != '+':
-                            CurrentState.Neighbours[locations[row][col]].append(locations[row][col - 1])
+                            CurrentState.Neighbours[locations[row][col]].add(locations[row][col - 1])
                 except Exception as ex :
-                    print('Index row =',row,'col =',col,file=sys.stderr, flush=True)
-                    print('Index error {}'.format(repr(ex)),file=sys.stderr, flush=True)
-                    sys.exit(1)
+                    HandleError('Index row ='+str(row)+'col ='+str(col)+'/nIndex error {}'.format(repr(ex)))
                     
     count=0  #for testing the below line, when it runs infinitely. Needs to be removed in final execution
 ###########################################one time execution###################################################    
@@ -236,9 +238,9 @@ if __name__ == '__main__':
             if len(plan_agent) > 0 :
                 current_plan[agent] = plan_agent 
             
-        combined_actions = [no_action]*total_agents                
         while True :
             cont = False
+            combined_actions = [no_action]*total_agents
             for agent, box_cells in current_plan.items():
                 box = box_cells[0]
                 cells = box_cells[1]
@@ -255,14 +257,26 @@ if __name__ == '__main__':
             ToServer(execute)
             if server :
                 step_succeed = FromServer()
-                if not step_succeed :
-                    ToServer('#Failed for'+execute)
-                    sys.exit(1)
-        
+                joint_actions = set(combined_actions)
+                if len(joint_actions) == 1 and no_action in joint_actions :
+                    error = '# Failed for agents \n'
+                    for a in CurrentState.AgentAt :
+                        error += str(a)
+                        error += '\n'
+                    error += '\nboxes \n'
+                    for b in CurrentState.BoxAt :
+                        error += str(b)
+                        error += '\n'
+                    HandleError(error)
+                    
         for box in CurrentState.BoxAt :
             if box in FinalState.GoalAt :
-                CurrentState.BoxAt.remove(box)
-                FinalState.GoalAt.remove(box)
+                try :
+                    FinalState.GoalAt.remove(box)
+                    CurrentState.BoxAt.remove(box)
+                except Exception as ex :
+                    HandleError('Key error {}'.format(repr(ex))+' for box '+str(box))
+
         count+=1
     
     ToServer('#Memory used ' + str(memory.get_usage()) + ' MB')

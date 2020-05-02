@@ -15,6 +15,9 @@ class Box:
     def __str__(self):
         return str(self.location) + ' Color : ' + self.color + ' Letter : ' + self.letter
 
+    def __hash__(self):
+        return hash(str(self))
+    
     def __eq__(self, other):
         if self.location == other.location and self.letter == other.letter and self.color == other.color:
             return True

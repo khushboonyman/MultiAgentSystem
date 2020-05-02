@@ -14,6 +14,5 @@ class CurrentState:
     FreeCells = list()
     Neighbours = {}
 
-
 class FinalState:
     GoalAt = list()
