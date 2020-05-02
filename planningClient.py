@@ -131,20 +131,20 @@ def MakePlan(agent):
     min_plan_length = MAX_ROW*MAX_COL
     for box in boxes :
         goals = FindGoal(box.color, box.letter)
-        for goal in goals :
-            plan_a = Plan(agent.location, box.location) # Plan for the agent to reach box
-            plan_b = Plan(box.location, goal.location) # Plan for the box to reach goal
-            path = []
-            agent_has_plan = plan_a.CreatePlan(agent.location, agent.location)
-            box_has_plan = plan_b.CreatePlan(box.location, agent.location)
-            if agent_has_plan and box_has_plan :
-                plan_a.plan.reverse()
-                path.extend(plan_a.plan)
-                plan_b.plan.reverse()
-                path.extend(plan_b.plan)
-            if len(path) < min_plan_length and len(path) > 0 :
-                min_plan_length = len(path)
-                plans_box = (box, path)
+        plan_a_b = Plan(agent.location, box.location) # Plan for the agent to reach box
+        agent_has_plan_to_box = plan_a_b.CreatePlan(agent.location, agent.location)
+        if agent_has_plan_to_box :
+            plan_a_b.plan.reverse()
+            path = plan_a_b.plan
+            for goal in goals :    
+                plan_b_g = Plan(box.location, goal.location) # Plan for the box to reach goal    
+                box_has_plan_to_goal = plan_b_g.CreatePlan(box.location, agent.location)
+                if box_has_plan_to_goal :
+                    plan_b_g.plan.reverse()
+                    path.extend(plan_b_g.plan)
+                    if len(path) < min_plan_length :
+                        min_plan_length = len(path)
+                        plans_box = (box, path)
     return plans_box
        
 if __name__ == '__main__':
