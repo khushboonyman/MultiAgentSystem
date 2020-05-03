@@ -24,92 +24,10 @@ sys.setrecursionlimit(x)
 
 global server
 server = True
-
-def HandleError(message):
-    if server :
-        print(message, file=sys.stderr, flush=True)
-    else :
-        print('ERROR : '+message)
-    sys.exit(1)
-        
-def ToServer(message):
-    if server :
-        print(message, file=sys.stdout, flush=True)
-    else :
-        print(message)
-
-def Readlines(msg):
-    return msg.readline().rstrip()
+no_action = 'NoOp'
 
 def FromServer() :
     return sys.stdin.readline()
-
-def ReadHeaders(messages):
-    list_of_colors = ['blue', 'red', 'cyan', 'purple', 'green', 'orange', 'pink', 'grey', 'lightblue', 'brown']
-    line = Readlines(messages)
-    if line == '#domain':
-        line = Readlines(messages)
-        if line != 'hospital':
-            HandleError('Incorrect domain, it can only be hospital')
-        else:
-            ToServer('#Domain is ' + line)
-    else:
-        HandleError('First line should be #domain')
-
-    line = Readlines(messages)
-    if line == '#levelname':
-        line = Readlines(messages)
-        ToServer('#Level name is ' + line)
-    else:
-        HandleError('Level name is missing')
-
-    line = Readlines(messages)
-    added = set()
-    if line == '#colors':
-        color_dict = {}
-        while True:
-            line = Readlines(messages)
-            if line[0] == '#' :
-                break               
-            color_data = re.split(', |: |\s', line)
-            if color_data[0] in list_of_colors:
-                for color_agent_box in color_data:
-                    if color_agent_box in added:
-                        HandleError('Color, agent or box has already been specified')
-                    else:
-                        added.add(color_agent_box)
-                color_dict[color_data[0]] = color_data[1:]
-            else:
-                HandleError('Unacceptable color')                   
-    else:
-        HandleError('Colors missing')
-
-    if line == '#initial':
-        line = Readlines(messages)
-        initial_state = list()
-        while line[0] != '#':
-            initial_state.append(line)
-            line = Readlines(messages)
-    else:
-        HandleError('Initial state missing')
-
-    if line == '#goal':
-        line = Readlines(messages)
-        goal_state = list()
-        row_index = 0
-        while line[0] != '#':
-            goal_state.append(line)
-            if len(line) != len(initial_state[row_index]) :
-                HandleError('Initial state and goal state mismatch on line '+str(row_index))
-            line = Readlines(messages)
-            row_index+=1
-    else:
-        HandleError('Goal state missing')
-            
-    if line != '#end':
-        HandleError('End missing')
-
-    return color_dict, initial_state, goal_state
 
 def FindBox(color):
     boxes = set()
@@ -173,23 +91,34 @@ if __name__ == '__main__':
         HandleError('Error parsing level: {}.'.format(repr(ex)))
     
     SetUpObjects(color_dict,goal_state)
+###########################################one time execution###################################################    
                     
     count=0  #for testing the below line, when it runs infinitely. Needs to be removed in final execution
-###########################################one time execution###################################################    
-    no_action = 'NoOp'
+
     total_agents = len(CurrentState.AgentAt)
+
     """This gets called until any goal is available"""
     
+    current_plan = dict()    
     while len(FinalState.GoalAt) > 0 and count < 100:
-        current_plan = dict()
-        for agent in CurrentState.AgentAt :
-            plan_agent = MakePlan(agent)
-            if len(plan_agent) > 0 :
-                current_plan[agent] = plan_agent 
         
         agent_in_conflict,location_conflict,conflict_start = None,None,None
         replan = False
         
+        for agent in CurrentState.AgentAt :
+            
+            if replan and agent != agent_in_conflict and agent in current_plan.keys() and len(current_plan[agent][1]) > 1 :
+                continue
+            else :
+                if agent in current_plan.keys() :
+                    del current_plan[agent]
+                plan_agent = MakePlan(agent)
+                if len(plan_agent) > 0 :
+                    current_plan[agent] = plan_agent 
+            
+            if agent in current_plan.keys() and len(current_plan[agent][1]) == 0:
+                del current_plan[agent]
+                
         if len(current_plan.keys()) > 1 :
             agent_in_conflict,location_conflict,conflict_start = CheckConflict(current_plan)
         
@@ -209,6 +138,7 @@ if __name__ == '__main__':
                     next_next_cell = cells[0]
                     goal_loc = cells[-1]
                     any_plan_left = True
+                    
                     if conflict and agent == agent_in_conflict and next_cell == conflict_start :
                         replan = True
                     else :
@@ -217,17 +147,21 @@ if __name__ == '__main__':
                     
                     if conflict and agent != agent_in_conflict and next_cell == conflict_start :
                         conflict_start = None
-                        replan = False
+                        replan = True
+                else :
+                    replan = True
+                    
             if not any_plan_left :
                 break
             
-            execute = ';'.join(combined_actions)
+            execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely
             #ToServer('#'+execute)
             ToServer(execute)
+            
             if server :
-                step_succeed = FromServer()
+                step_succeed = FromServer() #if you want to see server's response, print with a #
 
-            if replan :
+            if replan :   #someone needs to replan
                 break
             
         for box in CurrentState.BoxAt :

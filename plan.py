@@ -13,7 +13,6 @@ def printplan(plan):
     for i in plan:
         print(i)
 
-
 class Plan():
     def __init__(self, start, end):
         self.start = start

@@ -18,21 +18,22 @@ def CheckConflict(current_plan) :
     
     for agent1 in CurrentState.AgentAt :
         num_of_conflicts[agent1] = 0
-        len1 = len(current_plan[agent1][1])
-        path1 = current_plan[agent1][1]
-        for agent2 in CurrentState.AgentAt :
-            if agent1 != agent2 :
-                num_of_conflicts[agent2] = 0
-                len2 = len(current_plan[agent2][1])
-                small_path = len1 if len1 < len2 else len2 
-                path2 = current_plan[agent2][1]
-                for i in range(small_path-1) :
-                    #ToServer('#path1 '+str(path1[i])+' path2 '+str(path2[i]))
-                    if path1[i] == path2[i] or path1[i] == path2[i+1]:
-                        conflict_flag = True
-                        num_of_conflicts[agent1]+=1
-                        num_of_conflicts[agent2]+=1
-                        conflicts.append((agent1,agent2,path1[i]))
+        if agent1 in current_plan.keys() :
+            len1 = len(current_plan[agent1][1])
+            path1 = current_plan[agent1][1]
+        
+            for agent2 in CurrentState.AgentAt :
+                if agent1 != agent2 and agent2 in current_plan.keys()  :
+                    num_of_conflicts[agent2] = 0
+                    len2 = len(current_plan[agent2][1])
+                    small_path = len1 if len1 < len2 else len2 
+                    path2 = current_plan[agent2][1]
+                    for i in range(small_path-1) :
+                        if path1[i] == path2[i] or path1[i] == path2[i+1]:
+                            conflict_flag = True
+                            num_of_conflicts[agent1]+=1
+                            num_of_conflicts[agent2]+=1
+                            conflicts.append((agent1,agent2,path1[i]))
     
     if conflict_flag :
         max_conflict = 0
