@@ -26,12 +26,23 @@ class Agent:
         self.location = location
         self.color = color
         self.number = number
+        self.conflicts = False
 
     def __str__(self):
         return str(self.location) + ' Color : ' + self.color + ' Letter : ' + self.number
 
     def __hash__(self):
-        return hash(str(self))
+        return hash(self.number)
+    
+    def __eq__(self, other):
+        if self.number == other.number :
+            return True
+        return False
+    
+    def __ne__(self, other):
+        if self.number != other.number :
+            return True
+        return False
     
     def __lt__(self, other):
         if self.number < other.number :

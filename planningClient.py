@@ -16,14 +16,14 @@ from agent import *
 from box import *
 from plan import *
 import sys
+from conflict import *
+from setupobjects import *
 
 x=2500
 sys.setrecursionlimit(x)
 
 global server
 server = True
-global limit #this is the limit on size of rows and columns
-limit = 50
 
 def HandleError(message):
     if server :
@@ -128,19 +128,20 @@ def FindGoal(color,letter):
 def MakePlan(agent):
     plans_box = ()
     boxes = FindBox(agent.color)
-    min_plan_length = MAX_ROW*MAX_COL
+    min_plan_length = State.MAX_ROW*State.MAX_COL
     for box in boxes :
-        goals = FindGoal(box.color, box.letter)
         plan_a_b = Plan(agent.location, box.location) # Plan for the agent to reach box
         agent_has_plan_to_box = plan_a_b.CreatePlan(agent.location, agent.location)
         if agent_has_plan_to_box :
             plan_a_b.plan.reverse()
-            path = plan_a_b.plan
-            for goal in goals :    
+            goals = FindGoal(box.color, box.letter)
+            for goal in goals :
                 plan_b_g = Plan(box.location, goal.location) # Plan for the box to reach goal    
                 box_has_plan_to_goal = plan_b_g.CreatePlan(box.location, agent.location)
+                path = []
                 if box_has_plan_to_goal :
                     plan_b_g.plan.reverse()
+                    path.extend(plan_a_b.plan)
                     path.extend(plan_b_g.plan)
                     if len(path) < min_plan_length :
                         min_plan_length = len(path)
@@ -170,105 +171,65 @@ if __name__ == '__main__':
 
     except Exception as ex:
         HandleError('Error parsing level: {}.'.format(repr(ex)))
-
-    MAX_ROW = len(State.current_level)
-    if MAX_ROW > limit :
-        HandleError('Too many rows')        
     
-    MAX_COL = len(max(State.current_level, key=len))
-    if MAX_COL > limit :
-        HandleError('Too many columns')
-        
-    locations = list()
-    pattern_agent = re.compile("[0-9]+")
-    pattern_box = re.compile("[A-Z]+")
-    for i_index, row in enumerate(State.current_level):
-        locations_of_a_row = list()
-        for j_index, col in enumerate(row):
-            loc = Location(i_index, j_index)
-            locations_of_a_row.append(loc)
-            if col == ' ' :
-                CurrentState.FreeCells.append(loc)
-            if pattern_agent.fullmatch(col) is not None:
-                for key, value in color_dict.items():
-                    if col in value:
-                        agent = Agent(loc, key, col)
-                        CurrentState.AgentAt.append(agent)
-            if pattern_box.fullmatch(col) is not None:
-                for key, value in color_dict.items():
-                    if col in value:
-                        box = Box(loc, key, col)
-                        CurrentState.BoxAt.append(box)
-            goal = goal_state[i_index][j_index]
-            if pattern_box.fullmatch(goal) is not None:
-                for key, value in color_dict.items():
-                    if goal in value:
-                        box = Box(loc, key, goal)
-                        FinalState.GoalAt.append(box)
-        locations.append(locations_of_a_row)
-        
-    for row in range(1, MAX_ROW - 1):
-        START_COL = State.current_level[row].index('+')+1
-        END_COL = len(State.current_level[row])-1
-        if START_COL < END_COL :
-            for col in range(START_COL, END_COL):
-                try :
-                    if State.current_level[row][col] != '+' :                        
-                        CurrentState.Neighbours[locations[row][col]] = set()
-                        if len(State.current_level[row + 1]) > col and State.current_level[row + 1][col] != '+':
-                            CurrentState.Neighbours[locations[row][col]].add(locations[row + 1][col])
-                        if len(State.current_level[row - 1]) > col and State.current_level[row - 1][col] != '+':
-                            CurrentState.Neighbours[locations[row][col]].add(locations[row - 1][col])
-                        if State.current_level[row][col + 1] != '+':
-                            CurrentState.Neighbours[locations[row][col]].add(locations[row][col + 1])
-                        if State.current_level[row][col - 1] != '+':
-                            CurrentState.Neighbours[locations[row][col]].add(locations[row][col - 1])
-                except Exception as ex :
-                    HandleError('Index row ='+str(row)+'col ='+str(col)+'/nIndex error {}'.format(repr(ex)))
+    SetUpObjects(color_dict,goal_state)
                     
     count=0  #for testing the below line, when it runs infinitely. Needs to be removed in final execution
 ###########################################one time execution###################################################    
     no_action = 'NoOp'
     total_agents = len(CurrentState.AgentAt)
     """This gets called until any goal is available"""
+    
     while len(FinalState.GoalAt) > 0 and count < 100:
-        current_plan = {}
+        current_plan = dict()
         for agent in CurrentState.AgentAt :
             plan_agent = MakePlan(agent)
             if len(plan_agent) > 0 :
                 current_plan[agent] = plan_agent 
+        
+        agent_in_conflict,location_conflict,conflict_start = None,None,None
+        replan = False
+        
+        if len(current_plan.keys()) > 1 :
+            agent_in_conflict,location_conflict,conflict_start = CheckConflict(current_plan)
+        
+        if agent_in_conflict is not None :
+            conflict = True
+        else :
+            conflict = False
             
         while True :
-            cont = False
+            any_plan_left = False
             combined_actions = [no_action]*total_agents
             for agent, box_cells in current_plan.items():
                 box = box_cells[0]
                 cells = box_cells[1]
                 if len(cells) > 1 :
-                    cell1 = cells.pop(0)
-                    cell2 = cells[0]
+                    next_cell = cells.pop(0)
+                    next_next_cell = cells[0]
                     goal_loc = cells[-1]
-                    cont = True
-                    an_agent_action = agent.PrepareAction(box, cell1, cell2, goal_loc)
-                    combined_actions[int(agent.number)] = an_agent_action
-            if not cont :
+                    any_plan_left = True
+                    if conflict and agent == agent_in_conflict and next_cell == conflict_start :
+                        replan = True
+                    else :
+                        an_agent_action = agent.PrepareAction(box, next_cell, next_next_cell, goal_loc)
+                        combined_actions[int(agent.number)] = an_agent_action
+                    
+                    if conflict and agent != agent_in_conflict and next_cell == conflict_start :
+                        conflict_start = None
+                        replan = False
+            if not any_plan_left :
                 break
+            
             execute = ';'.join(combined_actions)
+            #ToServer('#'+execute)
             ToServer(execute)
             if server :
                 step_succeed = FromServer()
-                joint_actions = set(combined_actions)
-                if len(joint_actions) == 1 and no_action in joint_actions :
-                    error = '# Failed for agents \n'
-                    for a in CurrentState.AgentAt :
-                        error += str(a)
-                        error += '\n'
-                    error += '\nboxes \n'
-                    for b in CurrentState.BoxAt :
-                        error += str(b)
-                        error += '\n'
-                    HandleError(error)
-                    
+
+            if replan :
+                break
+            
         for box in CurrentState.BoxAt :
             if box in FinalState.GoalAt :
                 try :
