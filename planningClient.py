@@ -23,7 +23,7 @@ x=2500
 sys.setrecursionlimit(x)
 
 global server
-server = True
+server = False
 no_action = 'NoOp'
 
 def FromServer() :
@@ -80,7 +80,7 @@ if __name__ == '__main__':
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('levels/Tested/MAExample.lvl','r')
+            server_messages=open('../levels/stupid.lvl','r')
         ToServer('PlanningClient')
         color_dict, State.current_level, goal_state = ReadHeaders(server_messages)
         
@@ -112,8 +112,10 @@ if __name__ == '__main__':
             else :
                 if agent in current_plan.keys() :
                     del current_plan[agent]
+                #makes a plan for the agent
                 plan_agent = MakePlan(agent)
                 if len(plan_agent) > 0 :
+                    #adds the agent and his plan to the current_plan dict()
                     current_plan[agent] = plan_agent 
             
             if agent in current_plan.keys() and len(current_plan[agent][1]) == 0:
@@ -132,16 +134,17 @@ if __name__ == '__main__':
             combined_actions = [no_action]*total_agents
             for agent, box_cells in current_plan.items():
                 box = box_cells[0]
-                cells = box_cells[1]
-                if len(cells) > 1 :
-                    next_cell = cells.pop(0)
-                    next_next_cell = cells[0]
-                    goal_loc = cells[-1]
+                plan = box_cells[1]
+                if len(plan) > 1 :
+                    next_cell = plan.pop(0)
+                    next_next_cell = plan[0]
+                    goal_loc = plan[-1]
                     any_plan_left = True
                     
                     if conflict and agent == agent_in_conflict and next_cell == conflict_start :
                         replan = True
                     else :
+                        #PrepareAction takes one action at a time.
                         an_agent_action = agent.PrepareAction(box, next_cell, next_next_cell, goal_loc)
                         combined_actions[int(agent.number)] = an_agent_action
                     
@@ -149,6 +152,7 @@ if __name__ == '__main__':
                         conflict_start = None
                         replan = True
                 else :
+                    
                     replan = True
                     
             if not any_plan_left :
