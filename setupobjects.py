@@ -5,6 +5,7 @@ Created on Sun May  3 11:56:31 2020
 @author: Bruger
 """
 from planningClient import *
+from state import State
 
 global server
 server = True

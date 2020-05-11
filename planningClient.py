@@ -25,6 +25,7 @@ sys.setrecursionlimit(x)
 global server
 server = True
 no_action = 'NoOp'
+blocked_agents = []
 
 def FromServer() :
     return sys.stdin.readline()
@@ -44,26 +45,58 @@ def FindGoal(color,letter):
     return goals
 
 def MakePlan(agent):
+    global blocked_agents
     plans_box = ()
     boxes = FindBox(agent.color)
     min_plan_length = State.MAX_ROW*State.MAX_COL
-    for box in boxes :
-        plan_a_b = Plan(agent.location, box.location) # Plan for the agent to reach box
-        agent_has_plan_to_box = plan_a_b.CreatePlan(agent.location, agent.location)
-        if agent_has_plan_to_box :
-            plan_a_b.plan.reverse()
-            goals = FindGoal(box.color, box.letter)
-            for goal in goals :
-                plan_b_g = Plan(box.location, goal.location) # Plan for the box to reach goal    
-                box_has_plan_to_goal = plan_b_g.CreatePlan(box.location, agent.location)
-                path = []
-                if box_has_plan_to_goal :
-                    plan_b_g.plan.reverse()
-                    path.extend(plan_a_b.plan)
-                    path.extend(plan_b_g.plan)
-                    if len(path) < min_plan_length :
-                        min_plan_length = len(path)
-                        plans_box = (box, path)
+
+    if len(blocked_agents) != 0:
+        for blocked_agent in blocked_agents:
+            box = blocked_agent.blocked_by_box
+            if agent.color == box.color:
+                plan_a_b = Plan(agent.location, box.location)  # Plan for the agent to reach box
+                agent_has_plan_to_box = plan_a_b.CreatePlan(agent.location, agent.location)
+                if agent_has_plan_to_box:
+                    plan_a_b.plan.reverse()
+                    goals = FindGoal(box.color, box.letter)
+                    for goal in goals:
+                        plan_b_g = Plan(box.location, goal.location)  # Plan for the box to reach goal
+                        box_has_plan_to_goal = plan_b_g.CreatePlan(box.location, agent.location)
+                        path = []
+                        if box_has_plan_to_goal:
+                            plan_b_g.plan.reverse()
+                            path.extend(plan_a_b.plan)
+                            path.extend(plan_b_g.plan)
+                            if len(path) < min_plan_length:
+                                min_plan_length = len(path)
+                                plans_box = (box, path)
+                else:
+                    blocked_agents.append(agent)
+
+        if len(plans_box) != 0:
+            blocked_agents = []
+    else:
+        for box in boxes :
+            plan_a_b = Plan(agent.location, box.location) # Plan for the agent to reach box
+            agent_has_plan_to_box = plan_a_b.CreatePlan(agent.location, agent.location)
+            if agent_has_plan_to_box :
+                plan_a_b.plan.reverse()
+                goals = FindGoal(box.color, box.letter)
+                for goal in goals :
+                    plan_b_g = Plan(box.location, goal.location) # Plan for the box to reach goal
+                    box_has_plan_to_goal = plan_b_g.CreatePlan(box.location, agent.location)
+                    path = []
+                    if box_has_plan_to_goal :
+                        plan_b_g.plan.reverse()
+                        path.extend(plan_a_b.plan)
+                        path.extend(plan_b_g.plan)
+                        if len(path) < min_plan_length :
+                            min_plan_length = len(path)
+                            plans_box = (box, path)
+            else:
+                agent.blocked_by_box = plan_a_b.blocked_by_box
+                blocked_agents.append(agent)
+
     return plans_box
        
 if __name__ == '__main__':
@@ -80,7 +113,7 @@ if __name__ == '__main__':
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('levels/Tested/MAExample.lvl','r')
+            server_messages=open('comp17/MAExample_2.lvl','r')
         ToServer('PlanningClient')
         color_dict, State.current_level, goal_state = ReadHeaders(server_messages)
         

@@ -27,6 +27,7 @@ class Agent:
         self.color = color
         self.number = number
         self.conflicts = False
+        self.blocked_by_box = False
 
     def __str__(self):
         return str(self.location) + ' Color : ' + self.color + ' Letter : ' + self.number

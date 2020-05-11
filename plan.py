@@ -19,6 +19,7 @@ class Plan():
         self.end = end
         self.frontier_set = {self.start}
         self.plan = []
+        self.blocked_by_box = None
 
     def __str__(self):
         return ('Start location  : ' + str(self.start) +
@@ -52,6 +53,10 @@ class Plan():
                         h, l = frontier.get()
                         print(h, str(l))
                     sys.exit(1)
+            else:
+                for box in CurrentState.BoxAt:
+                    if box.location == leaf:
+                        self.blocked_by_box = box
 
         if frontier.empty():
             return False
