@@ -5,8 +5,8 @@ Created on Sat May  2 20:28:35 2020
 @author: Bruger
 """
 from agent import *
-from state import *
 from planningClient import *
+#import state
 
 def CheckConflict(current_plan) :
     num_of_conflicts = {}
@@ -16,13 +16,13 @@ def CheckConflict(current_plan) :
     location_conflict = None
     conflict_start = None
     
-    for agent1 in CurrentState.AgentAt :
+    for agent1 in AgentAt :
         num_of_conflicts[agent1] = 0
         if agent1 in current_plan.keys() :
             len1 = len(current_plan[agent1][1])
             path1 = current_plan[agent1][1]
         
-            for agent2 in CurrentState.AgentAt :
+            for agent2 in AgentAt :
                 if agent1 != agent2 and agent2 in current_plan.keys()  :
                     num_of_conflicts[agent2] = 0
                     len2 = len(current_plan[agent2][1])

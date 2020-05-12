@@ -5,7 +5,6 @@ Created on Wed Apr 15 21:55:26 2020
 
 import location
 
-
 class Box:
     def __init__(self, location, color, letter):
         self.location = location
@@ -25,16 +24,52 @@ class Box:
             return False
 
     def __lt__(self, other):
-        if self.letter < other.letter or (self.letter == other.letter and self.location < other.location):
+        free_self = 0
+        for n in State.Neighbours[self.location] :
+            if n in State.FreeCells :
+                free_self+=1
+            else :
+                for a in State.AgentAt :
+                    if n == a.location and a.color == self.color :
+                        free_self+=1
+        
+        free_other = 0
+        for n in State.Neighbours[other.location] :
+            if n in State.FreeCells :
+                free_other+=1
+            else :
+                for a in State.AgentAt :
+                    if n == a.location and a.color == other.color :
+                        free_other+=1
+                
+        if free_self <= free_other :
             return True
-        else:
-            return False
+        return False
+    
         
     def __gt__(self, other):
-        if self.letter > other.letter or (self.letter == other.letter and self.location > other.location):
+        free_self = 0
+        for n in State.Neighbours[self.location] :
+            if n in State.FreeCells :
+                free_self+=1
+            else :
+                for a in State.AgentAt :
+                    if n == a.location and a.color == self.color :
+                        free_self+=1
+        
+        free_other = 0
+        for n in State.Neighbours[other.location] :
+            if n in State.FreeCells :
+                free_other+=1
+            else :
+                for a in State.AgentAt :
+                    if n == a.location and a.color == other.color :
+                        free_other+=1
+                
+        if free_self > free_other :
             return True
-        else:
-            return False
+        return False
+    
         
     def __ne__(self, other):
         if self.location != other.location or self.letter != other.letter or self.color != other.color:

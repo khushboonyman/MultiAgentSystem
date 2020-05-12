@@ -2,9 +2,7 @@
 Created on Wed Apr 15 21:55:26 2020
 @author :
 """
-
 from state import *
-
 
 class Location:
     def __init__(self, x=0, y=0):
@@ -42,12 +40,9 @@ class Location:
     def __hash__(self):
         return hash(str(self))
 
-    def assign(self, data):
-        # we don't handle edge cases because there are walls on all these edge cells and they will never need to be modified
-        State.current_level[self.x] = State.current_level[self.x][:self.y] + data + State.current_level[self.x][
-                                                                                    self.y + 1:]
+    def assign(self, data):        
+        State.current_level[self.x] = State.current_level[self.x][:self.y] + data + State.current_level[self.x][self.y + 1:]        
 
     def free_cell(self):
         self.assign(' ')
-
 
