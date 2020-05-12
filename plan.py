@@ -15,6 +15,7 @@ class Plan():
         self.end = end
         self.frontier_set = {self.start}
         self.plan = []
+        self.blocked_by_box = None
 
     def __eq__(self,other) :
         if self.start == other.start and self.end == other.end :
@@ -75,7 +76,20 @@ class Plan():
                     frontier.put((heur, leaf))
                     self.frontier_set.add(leaf)
                 except Exception as ex:
+<<<<<<< HEAD
                     HandleError('Plan'+str(ex) + ' ' + str(heur) + ' leaf ' + str(leaf) + ' neighbours of ' + str(loc))
+=======
+                    print('error for ex ' + str(ex) + ' ' + str(heur) + ' leaf ' + str(leaf) + ' neighbours of ' + str(
+                        loc))
+                    while not frontier.empty():
+                        h, l = frontier.get()
+                        print(h, str(l))
+                    sys.exit(1)
+            else:
+                for box in CurrentState.BoxAt:
+                    if box.location == leaf:
+                        self.blocked_by_box = box
+>>>>>>> 372dc30b33f63ffec7716b8b437d40638b8474ea
 
         if frontier.empty():
             return False
