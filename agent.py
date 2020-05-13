@@ -27,17 +27,11 @@ class Agent:
         self.location = location
         self.color = color
         self.number = number
-<<<<<<< HEAD
         self.plan = plan
         self.move_box = move_box
         self.move_goal = move_goal
         self.request = request
         
-=======
-        self.conflicts = False
-        self.blocked_by_box = False
-
->>>>>>> 372dc30b33f63ffec7716b8b437d40638b8474ea
     def __str__(self):
         return str(self.location) + ' Color : ' + self.color + ' Letter : ' + self.number
 

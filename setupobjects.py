@@ -10,7 +10,6 @@ FUNCTIONS :
     SetUpObjects()
     
 """
-<<<<<<< HEAD
 from state import *
 from location import *
 from agent import *
@@ -19,13 +18,6 @@ from plan import *
 from error import *
 import sys
 import re
-=======
-from planningClient import *
-from state import State
-
-global server
-server = True
->>>>>>> 372dc30b33f63ffec7716b8b437d40638b8474ea
 
 #global variables
 global limit, no_action  #if running from server or IDE
