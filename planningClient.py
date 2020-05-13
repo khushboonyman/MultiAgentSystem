@@ -8,6 +8,7 @@ When testing it with file, make it False
 This will display the actions and also update State.current_level. At any point you can display 
 State.current_level to see how the level looks like after any action 
 '''
+import random
 
 import argparse
 from misc import memory
@@ -23,6 +24,7 @@ x=2500
 sys.setrecursionlimit(x)
 
 global server
+# java -jar ../server.jar -l ../levels/SAFooBarSimplified_3.lvl -c "python planningClient.py" -g 150 -t 300
 server = False
 no_action = 'NoOp'
 
@@ -43,20 +45,39 @@ def FindGoal(color,letter):
             goals.add(box)
     return goals
 
+def FindGoalLocations():
+    goals = set()
+    for box in FinalState.GoalAt:
+        goals.add(box.location)
+    return goals
+
 def MakePlan(agent):
     plans_box = ()
     boxes = FindBox(agent.color)
     min_plan_length = State.MAX_ROW*State.MAX_COL
+    #to make the agent not to choose the goals as parking spot if possible
+    all_goals = FindGoalLocations()
     for box in boxes :
-        plan_a_b = Plan(agent.location, box.location) # Plan for the agent to reach box
-        agent_has_plan_to_box = plan_a_b.CreatePlan(agent.location, agent.location)
-        if agent_has_plan_to_box :
+        #resetting the parking spot?
+        # Plan.
+        if box.letter in Plan.parked:
+            continue
+        plan_a_b = Plan(agent.location, box.location, agent.color) # Plan for the agent to reach box. Added agent.color
+        agent_has_plan_to_box = plan_a_b.CreatePlan(agent.location, agent.location, all_goals) #check if agent can reach box
+        if agent_has_plan_to_box:
             plan_a_b.plan.reverse()
             goals = FindGoal(box.color, box.letter)
             for goal in goals :
-                plan_b_g = Plan(box.location, goal.location) # Plan for the box to reach goal    
-                box_has_plan_to_goal = plan_b_g.CreatePlan(box.location, agent.location)
+                Plan.box_parking_planning=False
+                plan_b_g = Plan(box.location, goal.location, agent.color) # Plan for the box to reach goal    
+                #we want createPlan to give us where it fails. Thus, get a tuple.
+                box_has_plan_to_goal = plan_b_g.CreatePlan(box.location, agent.location, all_goals) #added a goals parameter
                 path = []
+                # print(plan_b_g.remove_box[0])
+                # print("-–––––––––––––––")
+                # for i in plan_b_g.parking_spot:
+                #     print(i)
+                # sys.exit(1)
                 if box_has_plan_to_goal :
                     plan_b_g.plan.reverse()
                     path.extend(plan_a_b.plan)
@@ -64,6 +85,46 @@ def MakePlan(agent):
                     if len(path) < min_plan_length :
                         min_plan_length = len(path)
                         plans_box = (box, path)
+                #if false. Call with box' goal as parking_spot. For temporary
+                if not box_has_plan_to_goal:
+                    Plan.box_parking_planning=True
+                    #pick random from parking spot and then remove it from parking spot
+                    #maybe add heuristics to the picking
+                    the_parking_spot = sorted(Plan.parking_spot)[0]
+                    Plan.parking_spot.discard(the_parking_spot)
+                    plan_b_to_parking = Plan(box.location, the_parking_spot[1], agent.color) # check how to select the parking spot
+                    box_plan_to_parking_spot = plan_b_to_parking.CreatePlan(box.location, agent.location, all_goals) #added a goals parameter
+                    # Plan.parking_spot=list()
+                    path.extend(plan_a_b.plan)
+                    plan_b_to_parking.plan.reverse()
+                    path.extend(plan_b_to_parking.plan)
+                    if (len(path) < min_plan_length) and box.letter not in Plan.parked:
+                        min_plan_length = len(path)
+                        plans_box = (box, path)
+                        Plan.parked.add(box.letter)
+                    # plans_box=(box, path)
+                    # Plan.parked.add(box.letter)
+                    #Plan.parking_spot.remove(parking_spot) # why does the parking_spot delete one after line 87?!
+                    
+                    # for blockbox in Plan.remove_box:
+                    #     #what if agent can't get to it?
+                    #     plan_agent_to_blockbox = Plan(agent.location, blockbox, agent.color)
+                    #     create_plan_agent_to_blockbox = plan_agent_to_blockbox.CreatePlan(agent.location, agent.location)
+                    #     plan_move_blockbox = Plan(blockbox, Plan.parking_spot[1], agent.color)
+                    #     create_plan_for_blockbox = plan_move_blockbox.CreatePlan(blockbox, agent.location)
+                    #     if create_plan_for_blockbox:
+                    #         path.extend(create_plan_agent_to_blockbox)
+                    #         path.extend(create_plan_for_blockbox)
+                    #         plans_box=(blockbox, path)
+
+                    # return plans_box # move
+                    #move the box in remove_box to free location, 
+                    # and try to plan for box again
+                    # while box_has_plan_to_goal is false: (not(box_has_plan_to_goal))
+                    #   
+                    # if solved make a dict and add the box to dict if solved. then continue and if in dict, skip it
+
+                
     return plans_box
        
 if __name__ == '__main__':
@@ -80,7 +141,7 @@ if __name__ == '__main__':
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('../levels/stupid.lvl','r')
+            server_messages=open('../levels/SAFooBarSimplified_3.lvl','r')
         ToServer('PlanningClient')
         color_dict, State.current_level, goal_state = ReadHeaders(server_messages)
         
@@ -100,7 +161,7 @@ if __name__ == '__main__':
     """This gets called until any goal is available"""
     
     current_plan = dict()    
-    while len(FinalState.GoalAt) > 0 and count < 100:
+    while len(FinalState.GoalAt) > 0 and count < 100: #change back to 100
         
         agent_in_conflict,location_conflict,conflict_start = None,None,None
         replan = False
@@ -113,6 +174,9 @@ if __name__ == '__main__':
                 if agent in current_plan.keys() :
                     del current_plan[agent]
                 #makes a plan for the agent
+                if len(Plan.parked) == len(CurrentState.BoxAt):
+                    #TODO: empty the parked.
+                    Plan.parked=set()
                 plan_agent = MakePlan(agent)
                 if len(plan_agent) > 0 :
                     #adds the agent and his plan to the current_plan dict()
@@ -173,6 +237,7 @@ if __name__ == '__main__':
                 try :
                     FinalState.GoalAt.remove(box)
                     CurrentState.BoxAt.remove(box)
+                    Plan.parked.discard(box.letter)
                 except Exception as ex :
                     HandleError('Key error {}'.format(repr(ex))+' for box '+str(box))
 
