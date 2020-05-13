@@ -8,7 +8,9 @@ from state import *
 from plan import *
 #import state  #contains global variables
 import sys
+import re
 from queue import PriorityQueue
+import copy
 
 def TranslateToDir(locfrom, locto):        
     if locfrom.x == locto.x:
@@ -23,7 +25,7 @@ def TranslateToDir(locfrom, locto):
             return 'S'
            
 class Agent:
-    def __init__(self, location, color, number, plan=[], move_box = None, move_goal = None, request = list()):
+    def __init__(self, location, color, number, plan=[], move_box = None, move_goal = None, request = dict()):
         self.location = location
         self.color = color
         self.number = number
@@ -104,7 +106,7 @@ class Agent:
 
         return self.NoOp()
 
-    def MakePlan(self):
+    def MakeDesirePlan(self):
         if len(self.request) > 0 :
             return
         letters = [letter for letter in State.color_dict[self.color]]
@@ -170,110 +172,100 @@ class Agent:
             self.move_box = None
             self.move_goal = None
 
-    def ExecuteRequest(self) :
-        action = 'NoOp'
+    def ExecuteRequest(self) :   
+        #don't pick only the first, need to improvise
+        for key,value in self.request.items() :
+            other_box = key
+            to_free_cells = value
+            break
         
-        if len(self.request) == 2 :
-            other_box = self.request[0]
-            to_free_cells = self.request[1]
-            for n in State.Neighbours[other_box.location] :
-                if n in State.FreeCells and n not in to_free_cells :
-                    action = self.Push(other_box,n)
-                    self.request = list()
-                    return action
-                
-            agents_neighbours = State.Neighbours[self.location]
-            small_frontier = PriorityQueue()
-            for each_neighbour in agents_neighbours:
-                small_heur = -1 * (abs(each_neighbour.x - to_free_cells[0].x) + abs(each_neighbour.y - to_free_cells[0].y))
-                small_frontier.put((small_heur, each_neighbour))
-                while not small_frontier.empty():
-                    agent_to = small_frontier.get()[1]
-                    action = self.Pull(other_box, agent_to)
-                    if action != self.NoOp():
-                        self.request = list()
-                        return action
-        else :
-            to_free_cells = self.request[0]
-            for n in State.Neighbours[self.location] :
-                if n in State.FreeCells and n not in to_free_cells :
-                    self.request = list()
-                    action = self.Move(n)
+        #other_box = copy.copy(del_box)
+        
+        for n in State.Neighbours[other_box.location] :
+            if n in State.FreeCells and n not in to_free_cells :
+                action = self.Push(other_box,n)
+                try :
+                    if other_box in self.request.keys() :    
+                        del(self.request[other_box])
+                except Exception as ex :
+                    HandleError('exception when deleting push request')
                         
-        return action
+                return action
+            
+        agents_neighbours = State.Neighbours[self.location]
+        small_frontier = PriorityQueue()
+        for each_neighbour in agents_neighbours:
+            small_heur = -1 * (abs(each_neighbour.x - to_free_cells[0].x) + abs(each_neighbour.y - to_free_cells[0].y))
+            small_frontier.put((small_heur, each_neighbour))
+            while not small_frontier.empty():
+                agent_to = small_frontier.get()[1]
+                action = self.Pull(other_box, agent_to)
+                if action != self.NoOp():
+                    try :
+                        if other_box in self.request.keys() :    
+                            del(self.request[other_box])
+                    except Exception as ex :
+                        HandleError('exception when deleting pull request')
+                    
+                    if other_box.location in to_free_cells :
+                        self.request[other_box] = to_free_cells                    
+                    return action
+        return self.NoOp()
                         
     def MakeRequest(self) :        
-        if len(self.request) == 0 :
-            cell1 = self.plan[0]
-            letter = State.current_level[cell1.x][cell1.y]
-            req = list()
+        pattern_box = re.compile("[A-Z]+")
+        cell1 = self.plan[0]
+        letter = State.current_level[cell1.x][cell1.y]
+        if pattern_box.fullmatch(letter) is not None: 
             for box in State.BoxAt[letter] :
                 if box.location == cell1 :
-                    req = [box,self.plan]
-                    break
-            if len(req) == 0 :
-                for agent in State.AgentAt :
-                    if agent.location == cell1 :
-                        agent.request = [self.plan]
-            else :
-                for agent in State.AgentAt :
-                    if agent.color == box.color :
-                        agent.request = req 
-        
-        self.plan = list()
-        self.move_box = None
-        self.move_goal = None
+                    for agent in State.AgentAt :
+                        if agent.color == box.color :
+                            agent.request[box] = set(self.plan)
            
     def Execute(self):   
         if len(self.request) > 0 :
             return self.ExecuteRequest()
         #check for free cells
         if len(self.plan) == 0 :
-            self.MakePlan()
+            self.MakeDesirePlan()
         
         if len(self.plan) == 0 :
             return self.NoOp()
-        
-        cell1 = self.plan[0]
                 
-        if self.move_box.location != cell1 :
-            if cell1 in State.FreeCells :
+        cell1 = self.plan[0]
+        cell2 = self.plan[1]  #need to check the condition
+        if (cell1 != self.move_box.location and cell2 not in State.FreeCells) or cell1 not in State.FreeCells :
+            self.MakeRequest()
+            if len(self.request) > 0 :
+                return self.ExecuteRequest()
+        else :
+            if self.move_box.location != cell1 :
                 self.plan.pop(0)
                 return self.Move(cell1)  
-            else :
-                self.MakeRequest()
-                if len(self.request) > 0 :
-                    return self.ExecuteRequest() 
-        else:
-            cell2 = self.plan[1]
-            #Remove goals and boxes that have reached each other         
-                
-            if cell2 != self.location:
-                if cell2 in State.FreeCells :
+            else:
+                if cell2 != self.location:
                     self.plan.pop(0)
                     action = self.Push(self.move_box,cell2)
                     if len(self.plan) == 1 :
+                        #Remove goals and boxes that have reached each other 
                         self.DeleteCells()
-                    return action 
-                else :
-                    self.MakeRequest()
-                    if len(self.request) > 0 :
-                        return self.ExecuteRequest() 
-            else:
-                agents_neighbours = State.Neighbours[self.location]
-                small_frontier = PriorityQueue()
-                for each_neighbour in agents_neighbours:
-                    small_heur = -1 * (abs(each_neighbour.x - self.move_goal.x) + abs(each_neighbour.y - self.move_goal.y))
-                    small_frontier.put((small_heur, each_neighbour))
-                while not small_frontier.empty():
-                    agent_to = small_frontier.get()[1]
-                    action = self.Pull(self.move_box, agent_to)
-                    if action != self.NoOp():
-                        self.plan.pop(0)  
-                        if len(self.plan) == 1 :
-                            self.DeleteCells()
-                        return action
-                return self.NoOp()
+                        return action 
+                else:
+                    agents_neighbours = State.Neighbours[self.location]
+                    small_frontier = PriorityQueue()
+                    for each_neighbour in agents_neighbours:
+                        small_heur = -1 * (abs(each_neighbour.x - self.move_goal.x) + abs(each_neighbour.y - self.move_goal.y))
+                        small_frontier.put((small_heur, each_neighbour))
+                    while not small_frontier.empty():
+                        agent_to = small_frontier.get()[1]
+                        action = self.Pull(self.move_box, agent_to)
+                        if action != self.NoOp():
+                            self.plan.pop(0)  
+                            if len(self.plan) == 1 :
+                                self.DeleteCells()
+                            return action
+                    return self.NoOp()
         return self.NoOp()
         
         

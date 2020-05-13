@@ -16,34 +16,12 @@ for key,value in State.GoalDependency.items() :
     print('is dependent on')
     for v in value :
         print(v)
-
-
+    print()
 
 ########################TESTING##################################
 
     
-    def MakePlan(self) :
-        if self.request is not None :
-            self.MakeRequestPlan()
-            return True
-        
-        letters = FindLetters(self.color)
-        selected_goal_location = None
-        selected_box = None
-        
-        for letter in letters :
-            for goal in State.GoalAt[letter] :
-                if goal in State.GoalLocations and goal not in State.GoalDependency.keys() : #Find goal to achieve
-                    selected_goal_location = goal
-        
-                    
-    
-    def Execute(self) :
-        if self.request is not None :
-            self.MakeRequestPlan()
-        
-        if len(self.plan_to_execute) == 0 :
-            return no_action
+   
 
        
                         

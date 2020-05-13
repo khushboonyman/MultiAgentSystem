@@ -40,7 +40,7 @@ if __name__ == '__main__':
         if server :
             server_messages = sys.stdin
         else :
-            server_messages=open('../levels/tested/SAExample.lvl','r')
+            server_messages=open('../levels/SAD1.lvl','r')
         
         ToServer('PlanningClient')
         #Read the input from server
@@ -66,17 +66,19 @@ if __name__ == '__main__':
     """This gets called until every goal is reached"""
     
     while len(State.GoalLocations) > 0 and count < 50:        
+        combined_actions = list()
+        agent_action = ''
         for agent in State.AgentAt :
-            combined_actions = list()
             if len(agent.plan) == 0 :
-                agent.MakePlan()
-            #agent.CheckPlan()
-            combined_actions.append(agent.Execute())
-            execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely
-            ToServer(execute)
+                agent.MakeDesirePlan()
+                #agent.CheckPlan()
+            agent_action = agent.Execute()
+            combined_actions.append(agent_action)
+        execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely    
+        ToServer(execute)
             
-            if server :
-                step_succeed = FromServer() #if you want to see server's response, print with a #                
+        if server :
+            step_succeed = FromServer() #if you want to see server's response, print with a #                
         
         count+=1
         

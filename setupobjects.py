@@ -179,14 +179,19 @@ def MakeInitialPlan():
                 
                 for goal_location in goals :
                     plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
-                    plan_g_b = Plan(goal_location, box.location) # Plan for goal to box, could be used when agent has reached a goal and wants to go to next box
                     box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
                     if box_has_plan_to_goal :
-                        plan_b_g.plan.pop(0)
-                        plan_b_g.plan.append(box.location)
-                        plan_g_b.plan = plan_b_g.plan.copy()
-                        State.Plans[plan_g_b] = plan_g_b.plan 
-                        plan_b_g.plan.pop()
+                        if len(plan_b_g.plan) > 1 :
+                            plan_back = plan_b_g.plan.copy()
+                            plan_back.pop(0)
+                            plan_back.pop(0)
+                            plan_back.append(box.location)
+                            first_location_in_path = plan_back[0]
+                            for start_location in State.Neighbours[first_location_in_path] :
+                                plan_g_b = Plan(start_location,box.location)
+                                plan_g_b.plan = plan_back
+                                State.Plans[plan_g_b] = plan_g_b.plan                            
+                            plan_b_g.plan.pop()
                         plan_b_g.plan.reverse()
                         plan_b_g.plan.append(goal_location)
                         State.Plans[plan_b_g] = plan_b_g.plan
