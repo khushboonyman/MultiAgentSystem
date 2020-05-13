@@ -65,13 +65,12 @@ if __name__ == '__main__':
     
     """This gets called until every goal is reached"""
     
-    while len(State.GoalLocations) > 0 and count < 50:        
+    while len(State.GoalLocations) > 0 and count < 20:        
         combined_actions = list()
         agent_action = ''
         for agent in State.AgentAt :
             if len(agent.plan) == 0 :
                 agent.MakeDesirePlan()
-                #agent.CheckPlan()
             agent_action = agent.Execute()
             combined_actions.append(agent_action)
         execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely    

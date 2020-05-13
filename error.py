@@ -6,7 +6,7 @@ Created on Tue May 12 19:55:58 2020
 """
 import sys
 global server
-server = False
+server = True
 
 def HandleError(message):
     if server :
