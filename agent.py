@@ -290,7 +290,8 @@ class Agent:
             if self.location not in State.Neighbours[other_box.location] :
                 self.MakeBoxIntentionPlan(other_box)    #i chose only intentional plan for this situation
                 if len(self.request_plan) > 0 : 
-                    if self.request_plan[0] in State.FreeCells : 
+                    if self.request_plan[0] in State.FreeCells :
+                        self.plan = []
                         return self.Move(self.request_plan.pop(0))  #agent moves towards box
                     else :
                         self.request_plan = list() #the original plan created has non free cells
@@ -320,12 +321,14 @@ class Agent:
                     while not small_frontier.empty():
                         agent_to = small_frontier.get()[1]
                         del(self.request[other_box])  
-                        action = self.Pull(other_box, agent_to)                                                      
+                        action = self.Pull(other_box, agent_to)      
+                        self.plan = []                                                
                         if other_box.location in to_free_cells :
-                            self.request[other_box] = to_free_cells                                 
+                            self.request[other_box] = to_free_cells  
                         return action
                 
                 if len(push_cells) > 0 :
+                    self.plan = []
                     action = self.Push(other_box, push_cells.pop(0))
                     return action
                 else :
