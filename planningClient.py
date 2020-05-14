@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('../levels/SAD1.lvl','r')
+            server_messages = open('levels/SAD1.lvl','r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     
     """This gets called until every goal is reached"""
     
-    while len(State.GoalAt) > 0 and count < 20:        
+    while len(State.GoalAt) > 0 and count < 50:        
         combined_actions = list()
         agent_action = ''
         for agent in State.AgentAt :

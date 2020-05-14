@@ -308,17 +308,17 @@ class Agent:
                 agents_neighbours = State.Neighbours[self.location]
                 small_frontier = PriorityQueue()
                 for each_neighbour in agents_neighbours:
-                    small_heur = -1 * (abs(each_neighbour.x - to_free_cells[0].x) + abs(each_neighbour.y - to_free_cells[0].y))
-                    small_frontier.put((small_heur, each_neighbour))
+                    if each_neighbour in State.FreeCells and each_neighbour != other_box.location :
+                        small_heur = -1 * (abs(each_neighbour.x - to_free_cells[0].x) + abs(each_neighbour.y - to_free_cells[0].y))
+                        small_frontier.put((small_heur, each_neighbour))
                     while not small_frontier.empty():
                         agent_to = small_frontier.get()[1]
-                        if agent_to in State.FreeCells :
-                            action = self.Pull(other_box, agent_to)
-                            if other_box in self.request.keys() :    
-                                del(self.request[other_box])                            
-                            if other_box.location in to_free_cells :
-                                self.request[other_box] = to_free_cells                                 
-                            return action
+                        action = self.Pull(other_box, agent_to)
+                        if other_box in self.request.keys() :    
+                            del(self.request[other_box])                            
+                        if other_box.location in to_free_cells :
+                            self.request[other_box] = to_free_cells                                 
+                        return action
                 
                 del(self.request[other_box])  #box couldn't be moved .. blocked by another box (should make another request ?)
                                 
@@ -358,16 +358,16 @@ class Agent:
                 agents_neighbours = State.Neighbours[self.location]
                 small_frontier = PriorityQueue()
                 for each_neighbour in agents_neighbours:
-                    small_heur = -1 * (abs(each_neighbour.x - self.move_goal.x) + abs(each_neighbour.y - self.move_goal.y))
-                    small_frontier.put((small_heur, each_neighbour))
+                    if each_neighbour in State.FreeCells and each_neighbour != self.move_box.location :
+                        small_heur = -1 * (abs(each_neighbour.x - self.move_goal.x) + abs(each_neighbour.y - self.move_goal.y))
+                        small_frontier.put((small_heur, each_neighbour))
                 while not small_frontier.empty():
                     agent_to = small_frontier.get()[1]
-                    if agent_to not in State.FreeCells :
-                        self.plan.pop(0)
-                        action = self.Pull(self.move_box, agent_to)  #NEED TO CHNAGE!!!                          
-                        if len(self.plan) <= 1 :
-                            self.DeleteCells()
-                        return action
+                    self.plan.pop(0)
+                    action = self.Pull(self.move_box, agent_to)                            
+                    if len(self.plan) <= 1 :
+                        self.DeleteCells()
+                    return action
                 return self.NoOp()
         
     #check for requests, check for feasibility of the plan and execute 
@@ -389,9 +389,11 @@ class Agent:
         not_free_cells = set(self.plan) - State.FreeCells
         if self.move_box.location in not_free_cells :
             not_free_cells.remove(self.move_box.location)
+        if self.location in not_free_cells :
+            not_free_cells.remove(self.location)
         if len(not_free_cells) != 0 :
             for path in self.plan :
-                if path not in State.FreeCells and path != self.move_box.location : #find first non-free cell
+                if path not in State.FreeCells and path != self.move_box.location and path != self.location : #find first non-free cell
                     replan = True
                     blocked = path
                     break
