@@ -1,12 +1,12 @@
 '''
 Created on Wed Apr 15 21:55:26 2020
 @author :
-    
+
 change the value of global variable 'server' to True, when running using the server
 When testing it with file, make it False
 
-This will display the actions and also update current_level. At any point you can display 
-current_level to see how the level looks like after any action 
+This will display the actions and also update current_level. At any point you can display
+current_level to see how the level looks like after any action
 
 '''
 
@@ -19,6 +19,7 @@ from state import *
 import sys
 from conflict import *
 from setupobjects import *
+import globals
 
 x=2500
 sys.setrecursionlimit(x)
@@ -31,22 +32,23 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Client based on planning approach.')
     parser.add_argument('--max-memory', metavar='<MB>', type=float, default=2048.0,
                         help='The maximum memory usage allowed in MB (soft limit, default 2048).')
+    parser.add_argument('--toServer', type=bool, default=False,
+                        help='The maximum memory usage allowed in MB (soft limit, default 2048).')
 
-    strategy_group = parser.add_mutually_exclusive_group()
     args = parser.parse_args()
     memory.max_usage = args.max_memory
+    globals.server = args.toServer
 
     try:
-        if server :
+        if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages=open('../levels/SAD1.lvl','r')
-        
+            server_messages = open('../levels/SAD1.lvl','r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
         
-        if not server :
+        if not globals.server :
             server_messages.close()
 
     except Exception as ex:
@@ -76,7 +78,7 @@ if __name__ == '__main__':
         execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely    
         ToServer(execute)
             
-        if server :
+        if globals.server :
             step_succeed = FromServer() #if you want to see server's response, print with a #                
         
         count+=1
