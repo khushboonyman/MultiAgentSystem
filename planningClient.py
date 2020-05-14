@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('levels/Sabotbot.lvl','r')
+            server_messages = open('levels/Satest.lvl','r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)

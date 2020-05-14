@@ -173,6 +173,7 @@ class Agent:
             
         letters = [letter for letter in State.color_dict[self.color]]
         min_plan_length = State.MAX_ROW*State.MAX_COL
+        min_b_g_length = State.MAX_ROW*State.MAX_COL
         
         for letter in letters :
             if letter in State.BoxAt.keys() and letter in State.GoalAt.keys() :  
@@ -207,16 +208,19 @@ class Agent:
                                 if box_has_plan_to_goal :
                                     plan_a_b_g.extend(State.Plans[plan_b_g])
                                     #save the shortest path
-                                    if len(plan_a_b_g) < min_plan_length :
+                                    if ((len(plan_a_b_g) == min_plan_length and len(plan_b_g.plan) < min_b_g_length) 
+                                    or len(plan_a_b_g) < min_plan_length) :
                                         self.plan = plan_a_b_g.copy()
                                         self.move_box = box
                                         self.move_goal = goal_location
                                         min_plan_length = len(plan_a_b_g)
+                                        min_b_g_length = len(plan_b_g.plan)
 
     #if belief plan had no free cells and intention plan cannot be made with the chosen box-goal, find any other intention .. unrelaxed
     def MakeAnyIntentionPlan(self):
         letters = [letter for letter in State.color_dict[self.color]]
         min_plan_length = State.MAX_ROW*State.MAX_COL
+        min_b_g_length = State.MAX_ROW*State.MAX_COL
         
         for letter in letters :
             if letter in State.BoxAt.keys() and letter in State.GoalAt.keys() :                
@@ -239,12 +243,13 @@ class Agent:
                                     plan_b_g.plan.reverse()
                                     plan_a_b_g.extend(plan_b_g.plan)
                                     #pick shortest intention plan
-                                    if len(plan_a_b_g) < min_plan_length :
+                                    if ((len(plan_a_b_g) == min_plan_length and len(plan_b_g.plan) < min_b_g_length)
+                                    or len(plan_a_b_g) < min_plan_length) :
                                         self.plan = plan_a_b_g.copy()
                                         self.move_box = box
                                         self.move_goal = goal_location
                                         min_plan_length = len(plan_a_b_g)
-    
+                                        min_b_g_length = len(plan_b_g.plan)
     #delete box goal combinations when box is on the goal location                                
     def DeleteCells(self) :
         save_key = None
@@ -404,7 +409,7 @@ class Agent:
         if self.location in not_free_cells :
             not_free_cells.remove(self.location)
         if len(not_free_cells) != 0 :
-            for path in self.plan :
+            for path in self.plan : 
                 if path not in State.FreeCells and path != self.move_box.location and path != self.location : #find first non-free cell
                     replan = True
                     blocked = path

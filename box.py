@@ -10,7 +10,7 @@ class Box:
         self.location = location
         self.color = color
         self.letter = letter
-    
+        
     def __str__(self):
         return str(self.location) + ' Color : ' + self.color + ' Letter : ' + self.letter
 

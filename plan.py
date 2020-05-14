@@ -30,13 +30,12 @@ class Plan():
     def Heuristic(self, location): #we need to improve the heuristic
         return abs(self.end.x - location.x) + abs(self.end.y - location.y)
 
-    #while finding a plan, relax the preconditions
+    #while finding a plan, relax the preconditions .. make A* instead .. 
     def CreateBeliefPlan(self, loc):
         if loc == self.end :
             return True        
         try :
             leaves = State.Neighbours[loc]
-            leaves.sort()
         except Exception as ex :
             HandleError('Plan'+str(loc)+' '+repr(ex))
             
@@ -88,5 +87,7 @@ class Plan():
                 if self.CreateIntentionPlan(leaf, agent_location):
                     self.plan.append(leaf)
                     return True
+                
+    
 
 
