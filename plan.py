@@ -18,9 +18,10 @@ class Plan():
     #New states
     remove_box = set()
     parking_spot = set() # maybe a PriorityQue instead?
-    parked = set()
+    parked = dict() #changed from set
     stopped_due_to_box = False
     box_parking_planning = False
+    planning_to_goal = False
     leaf_dictionary = dict()
 
     def __init__(self, start, end, color):
@@ -39,15 +40,30 @@ class Plan():
 
     def Heuristic(self, location):
         return abs(self.end.x - location.x) + abs(self.end.y - location.y)
-
+    
     def CreatePlan(self, loc, agent_location, BOX_GOALS=set()):
         #self.end is the box.location (FOR AGENT ONLY). So when agent has reach box,
         # we can move forward and plan from box to goal. This time self.end = goal.location
         #remove_box is moved to being a class state instead
         # remove_box = list()
+        #original:
+        #if loc==self.end:
+            #return true
         if loc == self.end:
-            # return (True, remove_box)
-            return True
+            box_at_other_box_goal = False
+            for key,value in self.parked.items():
+                #if self.end == value[1]:
+                if value[1].__eq__(self.end):
+                    box_at_other_box_goal = True
+            if not box_at_other_box_goal:
+                # return (True, remove_box)
+                return True
+        # elif loc == self.end and not self.planning_to_goal:
+        #     return True
+        #added and box not on the goal but only for box-to-parking
+        # elif loc == self.end and self.box_parking_planning and loc in CurrentState.FreeCells:
+        #     return True
+            
         try :
             leaves = CurrentState.Neighbours[loc]
         except Exception as ex :

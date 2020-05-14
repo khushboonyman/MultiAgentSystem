@@ -58,6 +58,8 @@ def MakePlan(agent):
     #to make the agent not to choose the goals as parking spot if possible
     all_goals = FindGoalLocations()
     for box in boxes :
+        Plan.planning_to_goal = False #remove
+        Plan.box_parking_planning=False #remove
         #resetting the parking spot?
         # Plan.
         if box.letter in Plan.parked:
@@ -68,9 +70,9 @@ def MakePlan(agent):
             plan_a_b.plan.reverse()
             goals = FindGoal(box.color, box.letter)
             for goal in goals :
-                Plan.box_parking_planning=False
                 plan_b_g = Plan(box.location, goal.location, agent.color) # Plan for the box to reach goal    
                 #we want createPlan to give us where it fails. Thus, get a tuple.
+                Plan.planning_to_goal = True
                 box_has_plan_to_goal = plan_b_g.CreatePlan(box.location, agent.location, all_goals) #added a goals parameter
                 path = []
                 # print(plan_b_g.remove_box[0])
@@ -101,7 +103,8 @@ def MakePlan(agent):
                     if (len(path) < min_plan_length) and box.letter not in Plan.parked:
                         min_plan_length = len(path)
                         plans_box = (box, path)
-                        Plan.parked.add(box.letter)
+                        Plan.parked[box.letter] = the_parking_spot
+                        #Plan.parked.add(box.letter)
                     # plans_box=(box, path)
                     # Plan.parked.add(box.letter)
                     #Plan.parking_spot.remove(parking_spot) # why does the parking_spot delete one after line 87?!
@@ -176,7 +179,8 @@ if __name__ == '__main__':
                 #makes a plan for the agent
                 if len(Plan.parked) == len(CurrentState.BoxAt):
                     #TODO: empty the parked.
-                    Plan.parked=set()
+                    Plan.parked = dict()
+                    #Plan.parked=set()
                 plan_agent = MakePlan(agent)
                 if len(plan_agent) > 0 :
                     #adds the agent and his plan to the current_plan dict()
