@@ -175,10 +175,9 @@ class Agent:
         min_plan_length = State.MAX_ROW*State.MAX_COL
         
         for letter in letters :
-            boxes = State.BoxAt[letter]
-            if letter in State.GoalAt.keys() :
+            if letter in State.BoxAt.keys() and letter in State.GoalAt.keys() :  
                 goals = State.GoalAt[letter]
-            
+                boxes = State.BoxAt[letter]
                 for goal_location in goals :
                     #only select goals that don't have dependency
                     if goal_location not in State.GoalDependency.keys() :
@@ -220,30 +219,31 @@ class Agent:
         min_plan_length = State.MAX_ROW*State.MAX_COL
         
         for letter in letters :
-            boxes = State.BoxAt[letter]
-            goals = State.GoalAt[letter]
-            
-            for goal_location in goals :
-                #only choose goals that don't have dependencies
-                if goal_location not in State.GoalDependency.keys() :
-                    for box in boxes :  
-                        plan_a_b_g = list()
-                        plan_a_b = Plan(self.location, box.location) # plan for the agent to reach box                        
-                        agent_has_plan_to_box = plan_a_b.CreateIntentionPlan(self.location,self.location)
-                        if agent_has_plan_to_box :
-                            plan_a_b.plan.reverse()
-                            plan_a_b_g.extend(plan_a_b.plan)
-                            plan_b_g = Plan(box.location, goal_location) # plan for the box to reach goal                            
-                            box_has_plan_to_goal = plan_b_g.CreateIntentionPlan(box.location,self.location)
-                            if box_has_plan_to_goal :
-                                plan_b_g.plan.reverse()
-                                plan_a_b_g.extend(plan_b_g.plan)
-                                #pick shortest intention plan
-                                if len(plan_a_b_g) < min_plan_length :
-                                    self.plan = plan_a_b_g.copy()
-                                    self.move_box = box
-                                    self.move_goal = goal_location
-                                    min_plan_length = len(plan_a_b_g)
+            if letter in State.BoxAt.keys() and letter in State.GoalAt.keys() :                
+                boxes = State.BoxAt[letter]
+                goals = State.GoalAt[letter]
+                
+                for goal_location in goals :
+                    #only choose goals that don't have dependencies
+                    if goal_location not in State.GoalDependency.keys() :
+                        for box in boxes :  
+                            plan_a_b_g = list()
+                            plan_a_b = Plan(self.location, box.location) # plan for the agent to reach box                        
+                            agent_has_plan_to_box = plan_a_b.CreateIntentionPlan(self.location,self.location)
+                            if agent_has_plan_to_box :
+                                plan_a_b.plan.reverse()
+                                plan_a_b_g.extend(plan_a_b.plan)
+                                plan_b_g = Plan(box.location, goal_location) # plan for the box to reach goal                            
+                                box_has_plan_to_goal = plan_b_g.CreateIntentionPlan(box.location,self.location)
+                                if box_has_plan_to_goal :
+                                    plan_b_g.plan.reverse()
+                                    plan_a_b_g.extend(plan_b_g.plan)
+                                    #pick shortest intention plan
+                                    if len(plan_a_b_g) < min_plan_length :
+                                        self.plan = plan_a_b_g.copy()
+                                        self.move_box = box
+                                        self.move_goal = goal_location
+                                        min_plan_length = len(plan_a_b_g)
     
     #delete box goal combinations when box is on the goal location                                
     def DeleteCells(self) :
@@ -426,10 +426,3 @@ class Agent:
                         return self.ExecuteRequest()                      
         
         return self.ExecuteDecision()
-        
-        
-        
-            
-            
-            
-    
