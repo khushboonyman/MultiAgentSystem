@@ -60,6 +60,7 @@ if __name__ == '__main__':
     MakeInitialPlan()
     #Find dependencies between goals, that is, if a goal should be achieved before another goal
     FindDependency()
+    del(State.GoalLocations)
     #sort the agents according to the number, so as to send their actions in the right order
     State.AgentAt.sort()
 ###########################################one time execution###################################################    

@@ -111,6 +111,7 @@ class Agent:
         print('from pull')
         return self.NoOp()
 
+    #agent had a plan but had to execute some other tasks and now she replans because she changed location .. relaxed
     def MakeBoxGoalDesirePlan(self) :
         plan_a_b_g = list()
         plan_a_b = Plan(self.location, self.move_box.location) # Plan for the agent to reach box
@@ -136,6 +137,7 @@ class Agent:
                 plan_a_b_g.extend(State.Plans[plan_b_g])
                 self.plan = plan_a_b_g
     
+    #agent has a request and needs to reach a box to free another agent .. unrelaxed
     def MakeBoxIntentionPlan(self,box) :        
         plan_a_b = Plan(self.location, box.location) # Plan for the agent to reach box        
         agent_has_plan_to_box = plan_a_b.CreateIntentionPlan(self.location,self.location)
@@ -144,6 +146,7 @@ class Agent:
             plan_a_b.plan.pop()
             self.request_plan = plan_a_b.plan
                 
+    #there are some cells that are not free in the current plan, then agent tries to find another path .. unrelaxed
     def MakeCurrentIntentionPlan(self) :
         plan_a_b_g = list()
         plan_a_b = Plan(self.location, self.move_box.location) # Plan for the agent to reach box
@@ -158,27 +161,32 @@ class Agent:
                 plan_b_g.plan.reverse()
                 plan_a_b_g.extend(plan_b_g.plan)
                 self.plan = plan_a_b_g
-                                
+                
+    #agent picks goals that have no dependency and all boxes and finds shortest agent-box-goal path ..relaxed
     def MakeDesirePlan(self):
+        #agent prioritises request
         if len(self.request) > 0 :
             return
         
+        #agent had a plan but left to execute a request, so she needs to replan
         if self.move_box is not None and self.move_goal is not None :
             self.MakeBoxGoalDesirePlan()
             return
             
         letters = [letter for letter in State.color_dict[self.color]]
         min_plan_length = State.MAX_ROW*State.MAX_COL
-        min_b_g_length = State.MAX_ROW*State.MAX_COL
+        
         for letter in letters :
             boxes = State.BoxAt[letter]
             goals = State.GoalAt[letter]
             
             for goal_location in goals :
-                if goal_location in State.GoalLocations and goal_location not in State.GoalDependency.keys() :
+                #only select goals that don't have dependency
+                if goal_location not in State.GoalDependency.keys() :
                     for box in boxes :  
                         plan_a_b_g = list()
                         plan_a_b = Plan(self.location, box.location) # Plan for the agent to reach box
+                        #if plan was found initially
                         if plan_a_b in State.Plans.keys() :
                             agent_has_plan_to_box = True
                         else :
@@ -190,6 +198,7 @@ class Agent:
                         if agent_has_plan_to_box :
                             plan_a_b_g.extend(State.Plans[plan_a_b])
                             plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
+                            #if plan was found initially
                             if plan_b_g in State.Plans.keys() :
                                 box_has_plan_to_goal = True
                             else :
@@ -199,60 +208,64 @@ class Agent:
                                     State.Plans[plan_b_g] = plan_b_g.plan
                             if box_has_plan_to_goal :
                                 plan_a_b_g.extend(State.Plans[plan_b_g])
-                                if (len(plan_a_b_g) < min_plan_length 
-                                or len(plan_a_b_g) == min_plan_length and len(plan_b_g.plan) < min_b_g_length) :
+                                #save the shortest path
+                                if len(plan_a_b_g) < min_plan_length :
                                     self.plan = plan_a_b_g.copy()
                                     self.move_box = box
                                     self.move_goal = goal_location
                                     min_plan_length = len(plan_a_b_g)
-                                    min_b_g_length = len(plan_b_g.plan)
 
+    #if belief plan had no free cells and intention plan cannot be made with the chosen box-goal, find any other intention .. unrelaxed
     def MakeAnyIntentionPlan(self):
         letters = [letter for letter in State.color_dict[self.color]]
         min_plan_length = State.MAX_ROW*State.MAX_COL
-        min_b_g_length = State.MAX_ROW*State.MAX_COL
+        
         for letter in letters :
             boxes = State.BoxAt[letter]
             goals = State.GoalAt[letter]
             
             for goal_location in goals :
-                if goal_location in State.GoalLocations and goal_location not in State.GoalDependency.keys() :
+                #only choose goals that don't have dependencies
+                if goal_location not in State.GoalDependency.keys() :
                     for box in boxes :  
                         plan_a_b_g = list()
-                        plan_a_b = Plan(self.location, box.location) # Plan for the agent to reach box                        
+                        plan_a_b = Plan(self.location, box.location) # plan for the agent to reach box                        
                         agent_has_plan_to_box = plan_a_b.CreateIntentionPlan(self.location,self.location)
                         if agent_has_plan_to_box :
                             plan_a_b.plan.reverse()
                             plan_a_b_g.extend(plan_a_b.plan)
-                            plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal                            
+                            plan_b_g = Plan(box.location, goal_location) # plan for the box to reach goal                            
                             box_has_plan_to_goal = plan_b_g.CreateIntentionPlan(box.location,self.location)
                             if box_has_plan_to_goal :
                                 plan_b_g.plan.reverse()
                                 plan_a_b_g.extend(plan_b_g.plan)
-                                if (len(plan_a_b_g) < min_plan_length 
-                                or len(plan_a_b_g) == min_plan_length and len(plan_b_g.plan) < min_b_g_length) :
+                                #pick shortest intention plan
+                                if len(plan_a_b_g) < min_plan_length :
                                     self.plan = plan_a_b_g.copy()
                                     self.move_box = box
                                     self.move_goal = goal_location
                                     min_plan_length = len(plan_a_b_g)
-                                    min_b_g_length = len(plan_b_g.plan)
-                                    
+    
+    #delete box goal combinations when box is on the goal location                                
     def DeleteCells(self) :
         save_key = None
+        #Delete the box that achieved goal
         State.BoxAt[self.move_box.letter].remove(self.move_box)
         if len(State.BoxAt[self.move_box.letter]) == 0 :
             del(State.BoxAt[self.move_box.letter])
         
+        #Delete the goal that now has a valid box
         State.GoalAt[self.move_box.letter].remove(self.move_goal)
         if len(State.GoalAt[self.move_box.letter]) == 0 :
             del(State.GoalAt[self.move_box.letter])
-            
-        State.GoalLocations.remove(self.move_goal)
+        
+        #Find the goals that have dependency on the goal that has been reached
         save_keys = list()
         for key,value in State.GoalDependency.items() :
             if self.move_goal in State.GoalDependency[key] :
                 save_keys.append(key)
                 
+        #Delete the dependent goals from the dictionary and remove the key if there are no more values remaining
         for save_key in save_keys :
             State.GoalDependency[save_key].remove(self.move_goal)
             if len(State.GoalDependency[save_key]) == 0 :
@@ -262,21 +275,29 @@ class Agent:
         self.move_box = None
         self.move_goal = None
 
+    #if agent has received request, follow that first
     def ExecuteRequest(self) :   
-        #don't pick only the first, need to improvise
+        #don't pick only the first, need to improvise .. make bidding system for example
         for key,value in self.request.items() :
-            other_box = key
+            other_box = key        #picking the first request
             to_free_cells = value
-            break        
-        #other_box = copy.copy(del_box)
+            break       
+        
+        #need to reach the box in the request
         if len(self.request_plan) == 0 :
+            #only make plan to box if its not in the neighborhood
             if self.location not in State.Neighbours[other_box.location] :
-                self.MakeBoxIntentionPlan(other_box)
-                if len(self.request_plan) > 0 :
-                    return self.Move(self.request_plan.pop(0))
+                self.MakeBoxIntentionPlan(other_box)    #i chose only intentional plan for this situation
+                if len(self.request_plan) > 0 : 
+                    if self.request_plan[0] in State.FreeCells : 
+                        return self.Move(self.request_plan.pop(0))  #agent moves towards box
+                    else :
+                        self.request_plan = list() #the original plan created has non free cells
                 else :
-                    return self.NoOp()
+                    del(self.request[other_box]) #delete request, so agent can go ahead with her own plan
+                    return self.NoOp()  #agent couldn't make a plan
             else :                
+                #now the agent is next to box, tries push first
                 for n in State.Neighbours[other_box.location] :
                     if n in State.FreeCells and n not in to_free_cells :
                         action = self.Push(other_box,n)                        
@@ -284,7 +305,8 @@ class Agent:
                             del(self.request[other_box])
                             self.plan = []                                
                         return action
-                    
+                 
+                #agent couldn't push, tries to pull away from the first cell that she has to free    
                 agents_neighbours = State.Neighbours[self.location]
                 small_frontier = PriorityQueue()
                 for each_neighbour in agents_neighbours:
@@ -292,20 +314,21 @@ class Agent:
                     small_frontier.put((small_heur, each_neighbour))
                     while not small_frontier.empty():
                         agent_to = small_frontier.get()[1]
-                        action = self.Pull(other_box, agent_to)
-                        if action != self.NoOp():
-                            
+                        if agent_to in State.FreeCells :
+                            action = self.Pull(other_box, agent_to)
                             if other_box in self.request.keys() :    
-                                del(self.request[other_box])
-                            
+                                del(self.request[other_box])                            
                             if other_box.location in to_free_cells :
-                                self.request[other_box] = to_free_cells 
-                                
+                                self.request[other_box] = to_free_cells                                 
                             return action
+                
+                del(self.request[other_box])  #box couldn't be moved .. blocked by another box (should make another request ?)
+                                
                 return self.NoOp()
         else :
-            return self.Move(self.request_plan.pop(0))
-                        
+            return self.Move(self.request_plan.pop(0))  #move closer to the box
+                
+    #make a request to some agent because the current plan cannot be executed, agent could be blocked or box could be blocked        
     def MakeRequest(self) :        
         pattern_box = re.compile("[A-Z]+")
         cell1 = self.plan[0]
@@ -317,7 +340,9 @@ class Agent:
                         if agent.color == box.color :
                             agent.request[box] = self.plan.copy()
            
+    #execute the current plan
     def Execute(self):  
+        #prioritise request
         if len(self.request) > 0 :
             return self.ExecuteRequest()
         
@@ -366,7 +391,7 @@ class Agent:
                         small_frontier.put((small_heur, each_neighbour))
                     while not small_frontier.empty():
                         agent_to = small_frontier.get()[1]
-                        action = self.Pull(self.move_box, agent_to)
+                        action = self.Pull(self.move_box, agent_to)  #NEED TO CHNAGE!!!
                         if action != self.NoOp():
                             self.plan.pop(0)  
                             if len(self.plan) <= 1 :

@@ -5,6 +5,7 @@ Created on Tue May 12 19:55:58 2020
 @author: Bruger
 """
 import sys
+
 import globals
 
 def HandleError(message):

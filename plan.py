@@ -30,6 +30,7 @@ class Plan():
     def Heuristic(self, location): #we need to improve the heuristic
         return abs(self.end.x - location.x) + abs(self.end.y - location.y)
 
+    #while finding a plan, relax the preconditions
     def CreateBeliefPlan(self, loc):
         if loc == self.end :
             return True        
@@ -58,6 +59,7 @@ class Plan():
                     self.plan.append(leaf)
                     return True
 
+    #while finding a plan, take preconditions into account
     def CreateIntentionPlan(self, loc, agent_location):
         if loc == self.end:
             return True        
