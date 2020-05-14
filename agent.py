@@ -176,42 +176,43 @@ class Agent:
         
         for letter in letters :
             boxes = State.BoxAt[letter]
-            goals = State.GoalAt[letter]
+            if letter in State.GoalAt :
+                goals = State.GoalAt[letter]
             
-            for goal_location in goals :
-                #only select goals that don't have dependency
-                if goal_location not in State.GoalDependency.keys() :
-                    for box in boxes :  
-                        plan_a_b_g = list()
-                        plan_a_b = Plan(self.location, box.location) # Plan for the agent to reach box
-                        #if plan was found initially
-                        if plan_a_b in State.Plans.keys() :
-                            agent_has_plan_to_box = True
-                        else :
-                            agent_has_plan_to_box = plan_a_b.CreateBeliefPlan(self.location)
-                            if agent_has_plan_to_box :
-                                plan_a_b.plan.reverse()
-                                State.Plans[plan_a_b] = plan_a_b.plan
-                    
-                        if agent_has_plan_to_box :
-                            plan_a_b_g.extend(State.Plans[plan_a_b])
-                            plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
+                for goal_location in goals :
+                    #only select goals that don't have dependency
+                    if goal_location not in State.GoalDependency.keys() :
+                        for box in boxes :  
+                            plan_a_b_g = list()
+                            plan_a_b = Plan(self.location, box.location) # Plan for the agent to reach box
                             #if plan was found initially
-                            if plan_b_g in State.Plans.keys() :
-                                box_has_plan_to_goal = True
+                            if plan_a_b in State.Plans.keys() :
+                                agent_has_plan_to_box = True
                             else :
-                                box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
+                                agent_has_plan_to_box = plan_a_b.CreateBeliefPlan(self.location)
+                                if agent_has_plan_to_box :
+                                    plan_a_b.plan.reverse()
+                                    State.Plans[plan_a_b] = plan_a_b.plan
+                        
+                            if agent_has_plan_to_box :
+                                plan_a_b_g.extend(State.Plans[plan_a_b])
+                                plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
+                                #if plan was found initially
+                                if plan_b_g in State.Plans.keys() :
+                                    box_has_plan_to_goal = True
+                                else :
+                                    box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
+                                    if box_has_plan_to_goal :
+                                        plan_b_g.plan.reverse()
+                                        State.Plans[plan_b_g] = plan_b_g.plan
                                 if box_has_plan_to_goal :
-                                    plan_b_g.plan.reverse()
-                                    State.Plans[plan_b_g] = plan_b_g.plan
-                            if box_has_plan_to_goal :
-                                plan_a_b_g.extend(State.Plans[plan_b_g])
-                                #save the shortest path
-                                if len(plan_a_b_g) < min_plan_length :
-                                    self.plan = plan_a_b_g.copy()
-                                    self.move_box = box
-                                    self.move_goal = goal_location
-                                    min_plan_length = len(plan_a_b_g)
+                                    plan_a_b_g.extend(State.Plans[plan_b_g])
+                                    #save the shortest path
+                                    if len(plan_a_b_g) < min_plan_length :
+                                        self.plan = plan_a_b_g.copy()
+                                        self.move_box = box
+                                        self.move_goal = goal_location
+                                        min_plan_length = len(plan_a_b_g)
 
     #if belief plan had no free cells and intention plan cannot be made with the chosen box-goal, find any other intention .. unrelaxed
     def MakeAnyIntentionPlan(self):
@@ -251,7 +252,9 @@ class Agent:
         State.BoxAt[self.move_box.letter].remove(self.move_box)
         if len(State.BoxAt[self.move_box.letter]) == 0 :
             del(State.BoxAt[self.move_box.letter])
-        
+            State.color_dict[self.color].remove(self.move_box.letter)
+            if len(State.color_dict[self.color]) == 0 :
+                del(State.color_dict[self.color])
         #Delete the goal that now has a valid box
         State.GoalAt[self.move_box.letter].remove(self.move_goal)
         if len(State.GoalAt[self.move_box.letter]) == 0 :
@@ -296,31 +299,37 @@ class Agent:
                     return self.NoOp()  #agent couldn't make a plan
             else :                
                 #now the agent is next to box, tries push first
+                push_cells = list()
                 for n in State.Neighbours[other_box.location] :
-                    if n in State.FreeCells and n not in to_free_cells :
-                        action = self.Push(other_box,n)                        
-                        if other_box in self.request.keys() :    
+                    if n in State.FreeCells :
+                        if n not in to_free_cells :
                             del(self.request[other_box])
-                            self.plan = []                                
-                        return action
-                 
+                            action = self.Push(other_box,n)                        
+                            self.plan = []                                                               
+                            return action
+                        else :
+                            push_cells.append(n)
+                
                 #agent couldn't push, tries to pull away from the first cell that she has to free    
                 agents_neighbours = State.Neighbours[self.location]
                 small_frontier = PriorityQueue()
                 for each_neighbour in agents_neighbours:
-                    if each_neighbour in State.FreeCells and each_neighbour != other_box.location :
+                    if each_neighbour in State.FreeCells :
                         small_heur = -1 * (abs(each_neighbour.x - to_free_cells[0].x) + abs(each_neighbour.y - to_free_cells[0].y))
                         small_frontier.put((small_heur, each_neighbour))
                     while not small_frontier.empty():
                         agent_to = small_frontier.get()[1]
-                        action = self.Pull(other_box, agent_to)
-                        if other_box in self.request.keys() :    
-                            del(self.request[other_box])                            
+                        del(self.request[other_box])  
+                        action = self.Pull(other_box, agent_to)                                                      
                         if other_box.location in to_free_cells :
                             self.request[other_box] = to_free_cells                                 
                         return action
                 
-                del(self.request[other_box])  #box couldn't be moved .. blocked by another box (should make another request ?)
+                if len(push_cells) > 0 :
+                    action = self.Push(other_box, push_cells.pop(0))
+                    return action
+                else :
+                    del(self.request[other_box])  #box couldn't be moved .. blocked by another box (should make another request ?)
                                 
                 return self.NoOp()
         else :
@@ -347,7 +356,7 @@ class Agent:
             return self.Move(cell1)  
         else:
             #If next to next location is where box should be, then push
-            if cell2 != self.location:
+            if cell2 != self.location :
                 self.plan.pop(0)
                 action = self.Push(self.move_box,cell2)
                 if len(self.plan) <= 1 :

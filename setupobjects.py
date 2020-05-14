@@ -151,15 +151,15 @@ def SetUpObjects() :
             for col in range(START_COL, END_COL):
                 try :
                     if State.current_level[row][col] != '+' :                        
-                        State.Neighbours[locations[row][col]] = set()
+                        State.Neighbours[locations[row][col]] = list()
                         if len(State.current_level[row + 1]) > col and State.current_level[row + 1][col] != '+':
-                            State.Neighbours[locations[row][col]].add(locations[row + 1][col])
+                            State.Neighbours[locations[row][col]].append(locations[row + 1][col])
                         if len(State.current_level[row - 1]) > col and State.current_level[row - 1][col] != '+':
-                            State.Neighbours[locations[row][col]].add(locations[row - 1][col])
+                            State.Neighbours[locations[row][col]].append(locations[row - 1][col])
                         if State.current_level[row][col + 1] != '+':
-                            State.Neighbours[locations[row][col]].add(locations[row][col + 1])
+                            State.Neighbours[locations[row][col]].append(locations[row][col + 1])
                         if State.current_level[row][col - 1] != '+':
-                            State.Neighbours[locations[row][col]].add(locations[row][col - 1])
+                            State.Neighbours[locations[row][col]].append(locations[row][col - 1])
                 except Exception as ex :
                     HandleError('SetupObjects'+' Index row ='+str(row)+'col ='+str(col)+'/nIndex error {}'.format(repr(ex)))
 

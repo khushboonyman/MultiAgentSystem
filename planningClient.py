@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('levels/SAD1.lvl','r')
+            server_messages = open('levels/SAd2.lvl','r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -60,7 +60,6 @@ if __name__ == '__main__':
     MakeInitialPlan()
     #Find dependencies between goals, that is, if a goal should be achieved before another goal
     FindDependency()
-    del(State.GoalLocations)
     #sort the agents according to the number, so as to send their actions in the right order
     State.AgentAt.sort()
 ###########################################one time execution###################################################    

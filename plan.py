@@ -36,6 +36,7 @@ class Plan():
             return True        
         try :
             leaves = State.Neighbours[loc]
+            leaves.sort()
         except Exception as ex :
             HandleError('Plan'+str(loc)+' '+repr(ex))
             

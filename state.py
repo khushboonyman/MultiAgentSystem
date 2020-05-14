@@ -11,7 +11,7 @@ class State :
     goal_level = list() #shows how the goal level looks 
     
     GoalDependency = dict() #dictionary of dependent goal locations .. {location : set(location)}
-    GoalLocations = set() #all goal locations .. {location}  .. only for finding dependencies   
+    GoalLocations = set() #all goal locations .. {location}  .. 
     
     Neighbours = dict() #dictionary of non-wall neighbours for each location .. {location : list(location)}
     GoalAt = dict() #Stores the locations of all goals .. {letter : list(location)}

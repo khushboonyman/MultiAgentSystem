@@ -16,17 +16,25 @@ class Location:
             return False
 
     def __lt__(self, other):
-        if self.x < other.x:
+        if self in State.FreeCells and other not in State.FreeCells :
             return True
-        if self.y < other.y:
+        if self not in State.FreeCells and other in State.FreeCells :
+            return False
+        if self in State.GoalLocations and other not in State.GoalLocations :
+            return False
+        if self not in State.GoalLocations and other in State.GoalLocations :
             return True
-        return False
+        return True
 
     def __gt__(self, other):
-        if self.x > other.x:
+        if self in State.FreeCells and other not in State.FreeCells :
+            return False
+        if self not in State.FreeCells and other in State.FreeCells :
             return True
-        if self.y > other.y:
+        if self in State.GoalLocations and other not in State.GoalLocations :
             return True
+        if self not in State.GoalLocations and other in State.GoalLocations :
+            return False
         return False
     
     def __ne__(self, other):
