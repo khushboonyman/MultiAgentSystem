@@ -323,18 +323,20 @@ class Agent:
                     if each_neighbour in State.FreeCells :
                         small_heur = -1 * (abs(each_neighbour.x - to_free_cells[0].x) + abs(each_neighbour.y - to_free_cells[0].y))
                         small_frontier.put((small_heur, each_neighbour))
-                    while not small_frontier.empty():
-                        agent_to = small_frontier.get()[1]
-                        del(self.request[other_box])  
-                        action = self.Pull(other_box, agent_to)      
-                        self.plan = []                                                
-                        if other_box.location in to_free_cells :
-                            self.request[other_box] = to_free_cells  
-                        return action
+                if not small_frontier.empty():
+                    agent_to = small_frontier.get()[1]
+                    del(self.request[other_box])  
+                    action = self.Pull(other_box, agent_to)      
+                    self.plan = []                                                
+                    if other_box.location in to_free_cells :
+                        self.request[other_box] = to_free_cells  
+                    return action
                 
                 if len(push_cells) > 0 :
                     self.plan = []
+                    del(self.request[other_box]) 
                     action = self.Push(other_box, push_cells.pop(0))
+                    self.request[other_box] = to_free_cells 
                     return action
                 else :
                     del(self.request[other_box])  #box couldn't be moved .. blocked by another box (should make another request ?)
@@ -378,7 +380,7 @@ class Agent:
                     if each_neighbour in State.FreeCells and each_neighbour != self.move_box.location :
                         small_heur = -1 * (abs(each_neighbour.x - self.move_goal.x) + abs(each_neighbour.y - self.move_goal.y))
                         small_frontier.put((small_heur, each_neighbour))
-                while not small_frontier.empty():
+                if not small_frontier.empty():
                     agent_to = small_frontier.get()[1]
                     self.plan.pop(0)
                     action = self.Pull(self.move_box, agent_to)                            
