@@ -18,6 +18,15 @@ for key,value in State.GoalDependency.items() :
         print(v)
     print()
 
+for key,value in State.GoalAt.items() :
+    print(key)
+    for v in value :
+        print(v)
+        
+for key,value in State.GoalPaths.items() :
+    print('goal is'+str(key.end))
+    for v in value :
+        print(v)
 ########################TESTING##################################
 
     

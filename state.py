@@ -13,6 +13,8 @@ class State :
     GoalDependency = dict() #dictionary of dependent goal locations .. {location : set(location)}
     GoalLocations = set() #all goal locations .. {location}  .. 
     
+    GoalPaths = dict() #stores only agent to goal paths to create dependencies
+    
     Neighbours = dict() #dictionary of non-wall neighbours for each location .. {location : list(location)}
     GoalAt = dict() #Stores the locations of all goals .. {letter : list(location)}
     Plans = dict() #Dictionary containing path between two locations .. {start,end : list(location)}    

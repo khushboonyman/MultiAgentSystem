@@ -176,7 +176,7 @@ class Agent:
         
         for letter in letters :
             boxes = State.BoxAt[letter]
-            if letter in State.GoalAt :
+            if letter in State.GoalAt.keys() :
                 goals = State.GoalAt[letter]
             
                 for goal_location in goals :

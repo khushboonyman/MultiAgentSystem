@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('levels/SAd2.lvl','r')
+            server_messages = open('levels/Sabotbot.lvl','r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     
     """This gets called until every goal is reached"""
     
-    while len(State.GoalAt) > 0 and count < 50:        
+    while len(State.GoalAt) > 0 and count < 100:        
         combined_actions = list()
         agent_action = ''
         for agent in State.AgentAt :
@@ -85,8 +85,7 @@ if __name__ == '__main__':
         
 ######################################################################################################################    
     ToServer('#Memory used ' + str(memory.get_usage()) + ' MB')
-                
-                
+
             
             
             

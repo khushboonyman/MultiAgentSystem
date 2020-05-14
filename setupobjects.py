@@ -178,6 +178,21 @@ def MakeInitialPlan():
                     State.Plans[plan_a_b] = plan_a_b.plan
                 
                 for goal_location in goals :
+                    plan_a_g = Plan(agent.location,goal_location)
+                    if plan_a_g not in State.GoalPaths.keys() :
+                        agent_has_plan_to_goal = plan_a_g.CreateBeliefPlan(agent.location)
+                        if agent_has_plan_to_goal :
+                            plan_a_g.plan.reverse()
+                            #check if there are any goal paths on the way and add them
+                            for index,p in enumerate(plan_a_g.plan) :
+                                if p!= goal_location and p in State.GoalLocations :
+                                    plan_new_a_g = Plan(agent.location,p)
+                                    if plan_new_a_g not in State.GoalPaths.keys() :
+                                        plan_new_a_g.plan = plan_a_g.plan[:index]
+                                        State.GoalPaths[plan_new_a_g] = plan_new_a_g.plan
+                                        
+                            State.GoalPaths[plan_a_g] = plan_a_g.plan
+                            
                     plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
                     box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
                     if box_has_plan_to_goal :
@@ -190,11 +205,10 @@ def MakeInitialPlan():
 
 def FindDependency() :
     State.GoalDependency = dict()
-    for plan,path in State.Plans.items() :
-        if plan.end in State.GoalLocations :
-            for p in path :
-                if p in State.GoalLocations and p != plan.end :
-                    if p not in State.GoalDependency.keys() :
-                        State.GoalDependency[p] = set()
-                    State.GoalDependency[p].add(plan.end)
+    for plan,path in State.GoalPaths.items() :
+        for p in path :
+            if p in State.GoalLocations and p != plan.end and p in State.Neighbours[plan.end] :
+                if p not in State.GoalDependency.keys() :
+                    State.GoalDependency[p] = set()
+                State.GoalDependency[p].add(plan.end)
                       
