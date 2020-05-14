@@ -32,12 +32,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Client based on planning approach.')
     parser.add_argument('--max-memory', metavar='<MB>', type=float, default=2048.0,
                         help='The maximum memory usage allowed in MB (soft limit, default 2048).')
-    parser.add_argument('--toServer', type=bool, default=False,
+    parser.add_argument('--server', type=bool, default=False,
                         help='The maximum memory usage allowed in MB (soft limit, default 2048).')
 
     args = parser.parse_args()
     memory.max_usage = args.max_memory
-    globals.server = args.toServer
+    globals.server = args.server
 
     try:
         if globals.server:
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     
     """This gets called until every goal is reached"""
     
-    while len(State.GoalLocations) > 0 and count < 20:        
+    while len(State.GoalAt) > 0 and count < 20:        
         combined_actions = list()
         agent_action = ''
         for agent in State.AgentAt :
