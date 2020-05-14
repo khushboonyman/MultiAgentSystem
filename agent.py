@@ -74,7 +74,7 @@ class Agent:
             self.location.assign(self.number)
             State.FreeCells.remove(self.location)
             return 'Move(' + move_dir_agent + ')'
-        #print('from move')
+        
         return self.NoOp()
 
     def Push(self, box, boxto):
@@ -91,7 +91,6 @@ class Agent:
             State.FreeCells.remove(boxto)
             return 'Push(' + move_dir_agent + ',' + move_dir_box + ')'
 
-        #print('from push')
         return self.NoOp()
 
     def Pull(self, box, agtto):
@@ -108,7 +107,6 @@ class Agent:
             State.FreeCells.remove(agtto)
             return 'Pull(' + move_dir_agent + ',' + curr_dir_box + ')'
 
-        print('from pull')
         return self.NoOp()
 
     #agent had a plan but had to execute some other tasks and now she replans because she changed location .. relaxed
@@ -329,75 +327,92 @@ class Agent:
             return self.Move(self.request_plan.pop(0))  #move closer to the box
                 
     #make a request to some agent because the current plan cannot be executed, agent could be blocked or box could be blocked        
-    def MakeRequest(self) :        
+    def MakeRequest(self,blocked) :        
         pattern_box = re.compile("[A-Z]+")
-        cell1 = self.plan[0]
-        letter = State.current_level[cell1.x][cell1.y]
+        letter = State.current_level[blocked.x][blocked.y]
         if pattern_box.fullmatch(letter) is not None: 
             for box in State.BoxAt[letter] :
-                if box.location == cell1 :
+                if box.location == blocked :
                     for agent in State.AgentAt :
                         if agent.color == box.color :
                             agent.request[box] = self.plan.copy()
-           
-    #execute the current plan
-    def Execute(self):  
+   
+    def ExecuteDecision(self) :
+        cell1 = self.plan[0]
+        cell2 = self.plan[1]  
+        
+        #Move towards the box
+        if self.move_box.location != cell1 :
+            self.plan.pop(0)
+            return self.Move(cell1)  
+        else:
+            #If next to next location is where box should be, then push
+            if cell2 != self.location:
+                self.plan.pop(0)
+                action = self.Push(self.move_box,cell2)
+                if len(self.plan) <= 1 :
+                    self.DeleteCells()   #Remove goals and boxes that have reached each other 
+                return action 
+            else:
+                #if next to next location is agent's location, then pull
+                agents_neighbours = State.Neighbours[self.location]
+                small_frontier = PriorityQueue()
+                for each_neighbour in agents_neighbours:
+                    small_heur = -1 * (abs(each_neighbour.x - self.move_goal.x) + abs(each_neighbour.y - self.move_goal.y))
+                    small_frontier.put((small_heur, each_neighbour))
+                while not small_frontier.empty():
+                    agent_to = small_frontier.get()[1]
+                    if agent_to not in State.FreeCells :
+                        self.plan.pop(0)
+                        action = self.Pull(self.move_box, agent_to)  #NEED TO CHNAGE!!!                          
+                        if len(self.plan) <= 1 :
+                            self.DeleteCells()
+                        return action
+                return self.NoOp()
+        
+    #check for requests, check for feasibility of the plan and execute 
+    def CheckAndExecute(self):  
         #prioritise request
         if len(self.request) > 0 :
             return self.ExecuteRequest()
         
+        #if no desire plan was made, then agent doesn't have more plans
         if len(self.plan) == 0 :
             return self.NoOp()
                 
+        #save the desire plan
         save_plan = self.plan.copy()
         
         replan = False
-        for path in self.plan :
-            if path not in State.FreeCells and path != self.move_box.location :
-                replan = True
-                break
-            
+        
+        #find if any desire plan path is not free
+        not_free_cells = set(self.plan) - State.FreeCells
+        if self.move_box.location in not_free_cells :
+            not_free_cells.remove(self.move_box.location)
+        if len(not_free_cells) != 0 :
+            for path in self.plan :
+                if path not in State.FreeCells and path != self.move_box.location : #find first non-free cell
+                    replan = True
+                    blocked = path
+                    break
+                
+        
+        #while replanning, make intentional plan
         if replan :
             self.plan = list()
+            #first try with chosen box and goal
             self.MakeCurrentIntentionPlan()
             if len(self.plan) == 0 :
+                #if cannot make plan with chosen box and goal, then chose any plan that can be achieved
                 self.MakeAnyIntentionPlan()
-                if len(self.plan) == 0 :
-                    self.plan = save_plan                        
+                if len(self.plan) == 0 : #if no plan could be made, keep the original plan 
+                    self.plan = save_plan 
+                    self.MakeRequest(blocked) #make request to agent whose box blocks the current agent
+                    if len(self.request) > 0 :  #if request was made to self, then execute
+                        return self.ExecuteRequest()                      
         
-        cell1 = self.plan[0]
-        cell2 = self.plan[1]  #need to check the condition
+        return self.ExecuteDecision()
         
-        if (cell1 not in State.FreeCells and cell1 != self.move_box.location) or cell2 not in State.FreeCells  :
-            self.MakeRequest()
-            if len(self.request) > 0 :
-                return self.ExecuteRequest()
-        else :
-            if self.move_box.location != cell1 :
-                self.plan.pop(0)
-                return self.Move(cell1)  
-            else:
-                if cell2 != self.location:
-                    self.plan.pop(0)
-                    action = self.Push(self.move_box,cell2)
-                    if len(self.plan) <= 1 :
-                        self.DeleteCells()   #Remove goals and boxes that have reached each other 
-                    return action 
-                else:
-                    agents_neighbours = State.Neighbours[self.location]
-                    small_frontier = PriorityQueue()
-                    for each_neighbour in agents_neighbours:
-                        small_heur = -1 * (abs(each_neighbour.x - self.move_goal.x) + abs(each_neighbour.y - self.move_goal.y))
-                        small_frontier.put((small_heur, each_neighbour))
-                    while not small_frontier.empty():
-                        agent_to = small_frontier.get()[1]
-                        action = self.Pull(self.move_box, agent_to)  #NEED TO CHNAGE!!!
-                        if action != self.NoOp():
-                            self.plan.pop(0)  
-                            if len(self.plan) <= 1 :
-                                self.DeleteCells()
-                            return action
-        return self.NoOp()
         
         
             

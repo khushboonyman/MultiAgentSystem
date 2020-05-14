@@ -74,7 +74,7 @@ if __name__ == '__main__':
         for agent in State.AgentAt :
             if len(agent.plan) == 0 :
                 agent.MakeDesirePlan()
-            agent_action = agent.Execute()
+            agent_action = agent.CheckAndExecute()
             combined_actions.append(agent_action)
         execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely    
         ToServer(execute)
