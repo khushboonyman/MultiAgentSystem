@@ -23,3 +23,31 @@ class State :
     FreeCells = set() #Cells which are currently free .. {location(x,y)}
     MAX_ROW = 0 
     MAX_COL = 0
+    max_priority = 0
+
+    @staticmethod
+    def getAgent(number):
+        for agent in State.AgentAt:
+            if agent.number == number:
+                return agent
+        return None
+
+    @staticmethod
+    def getCellContent(location):
+        return State.current_level[location.x][location.y]
+
+    @staticmethod
+    def isCellAgent(location):
+        cell_content = State.getCellContent(location)
+        for agent in State.AgentAt:
+            if agent.number == cell_content:
+                return True
+        return False
+
+    @staticmethod
+    def getCellAgent(location):
+        cell_content = State.getCellContent(location)
+        for agent in State.AgentAt:
+            if agent.number == cell_content:
+                return agent
+        return None

@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('levels/alextested/Sacrunch.lvl','r')
+            server_messages = open('levels/AlexTested/MAExample.lvl', 'r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -67,19 +67,31 @@ if __name__ == '__main__':
     
     """This gets called until every goal is reached"""
     
-    while len(State.GoalAt) > 0 and count < 100:        
+    while len(State.GoalAt) > 0 and count < 1000:
         combined_actions = list()
         agent_action = ''
         for agent in State.AgentAt :
-            if len(agent.plan) == 0 :
+            if len(agent.plan) == 0:
                 agent.MakeDesirePlan()
             agent_action = agent.CheckAndExecute()
             combined_actions.append(agent_action)
         execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely    
         ToServer(execute)
-            
+        ToServer('#'+execute)    
         if globals.server :
             step_succeed = FromServer() #if you want to see server's response, print with a #                
+            result = step_succeed.rstrip().split(';')
+            if 'false' in result :
+                final_combined_actions = list()
+                for index,r in enumerate(result) :
+                    if r == 'true' :
+                        agent_action = 'NoOp'
+                    else :
+                        agent_action = combined_actions[index]
+                    final_combined_actions.append(agent_action)
+                execute = ';'.join(final_combined_actions)  #prepare joint actions of agents to run parallely    
+                ToServer(execute) 
+                ToServer('#'+execute)
         
         count+=1
         
