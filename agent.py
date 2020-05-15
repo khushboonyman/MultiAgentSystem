@@ -11,6 +11,7 @@ import sys
 import re
 from queue import PriorityQueue
 import copy
+from collections import deque
 
 def TranslateToDir(locfrom, locto):        
     if locfrom.x == locto.x:
@@ -25,7 +26,7 @@ def TranslateToDir(locfrom, locto):
             return 'S'
            
 class Agent:
-    def __init__(self, location, color, number, plan=[], move_box = None, move_goal = None, request = dict(), request_plan = list()):
+    def __init__(self, location, color, number, plan=deque(), move_box = None, move_goal = None, request = dict(), request_plan = deque()):
         self.location = location
         self.color = color
         self.number = number
@@ -111,7 +112,7 @@ class Agent:
 
     #agent had a plan but had to execute some other tasks and now she replans because she changed location .. relaxed
     def MakeBoxGoalDesirePlan(self) :
-        plan_a_b_g = list()
+        plan_a_b_g = deque()
         plan_a_b = Plan(self.location, self.move_box.location) # Plan for the agent to reach box
         if plan_a_b in State.Plans.keys() :
             agent_has_plan_to_box = True
@@ -146,7 +147,7 @@ class Agent:
                 
     #there are some cells that are not free in the current plan, then agent tries to find another path .. unrelaxed
     def MakeCurrentIntentionPlan(self) :
-        plan_a_b_g = list()
+        plan_a_b_g = deque()
         plan_a_b = Plan(self.location, self.move_box.location) # Plan for the agent to reach box
         agent_has_plan_to_box = plan_a_b.CreateIntentionPlan(self.location,self.location)
         
@@ -183,7 +184,7 @@ class Agent:
                     #only select goals that don't have dependency
                     if goal_location not in State.GoalDependency.keys() :
                         for box in boxes :  
-                            plan_a_b_g = list()
+                            plan_a_b_g = deque()
                             plan_a_b = Plan(self.location, box.location) # Plan for the agent to reach box
                             #if plan was found initially
                             if plan_a_b in State.Plans.keys() :
@@ -231,7 +232,7 @@ class Agent:
                     #only choose goals that don't have dependencies
                     if goal_location not in State.GoalDependency.keys() :
                         for box in boxes :  
-                            plan_a_b_g = list()
+                            plan_a_b_g = deque()
                             plan_a_b = Plan(self.location, box.location) # plan for the agent to reach box                        
                             agent_has_plan_to_box = plan_a_b.CreateIntentionPlan(self.location,self.location)
                             if agent_has_plan_to_box :
@@ -253,6 +254,15 @@ class Agent:
     #delete box goal combinations when box is on the goal location                                
     def DeleteCells(self) :
         save_key = None
+        
+        #treat the goal achieved cell as a wall
+        #delete neighbours first
+        for n in State.Neighbours[self.move_box.location] :
+            State.Neighbours[n].remove(self.move_box.location)
+        
+        #delete from neighbour list
+        del(State.Neighbours[self.move_box.location])        
+        
         #Delete the box that achieved goal
         State.BoxAt[self.move_box.letter].remove(self.move_box)
         if len(State.BoxAt[self.move_box.letter]) == 0 :
@@ -266,18 +276,19 @@ class Agent:
             del(State.GoalAt[self.move_box.letter])
         
         #Find the goals that have dependency on the goal that has been reached
-        save_keys = list()
+        save_keys = deque()
         for key,value in State.GoalDependency.items() :
             if self.move_goal in State.GoalDependency[key] :
                 save_keys.append(key)
                 
         #Delete the dependent goals from the dictionary and remove the key if there are no more values remaining
-        for save_key in save_keys :
+        while len(save_keys) != 0 :
+            save_key = save_keys.pop() 
             State.GoalDependency[save_key].remove(self.move_goal)
             if len(State.GoalDependency[save_key]) == 0 :
                 del(State.GoalDependency[save_key])
                 
-        self.plan = []
+        self.plan = deque()
         self.move_box = None
         self.move_goal = None
 
@@ -295,23 +306,24 @@ class Agent:
             if self.location not in State.Neighbours[other_box.location] :
                 self.MakeBoxIntentionPlan(other_box)    #i chose only intentional plan for this situation
                 if len(self.request_plan) > 0 : 
-                    if self.request_plan[0] in State.FreeCells :
-                        self.plan = []
-                        return self.Move(self.request_plan.pop(0))  #agent moves towards box
+                    move_cell = self.request_plan.popleft() 
+                    if  move_cell in State.FreeCells :
+                        self.plan = deque()
+                        return self.Move(move_cell)  #agent moves towards box
                     else :
-                        self.request_plan = list() #the original plan created has non free cells
+                        self.request_plan = deque() #the original plan created has non free cells
                 else :
                     del(self.request[other_box]) #delete request, so agent can go ahead with her own plan
                     return self.NoOp()  #agent couldn't make a plan
             else :                
                 #now the agent is next to box, tries push first
-                push_cells = list()
+                push_cells = deque()
                 for n in State.Neighbours[other_box.location] :
                     if n in State.FreeCells :
                         if n not in to_free_cells :
                             del(self.request[other_box])
                             action = self.Push(other_box,n)                        
-                            self.plan = []                                                               
+                            self.plan = deque()                                                               
                             return action
                         else :
                             push_cells.append(n)
@@ -327,15 +339,15 @@ class Agent:
                     agent_to = small_frontier.get()[1]
                     del(self.request[other_box])  
                     action = self.Pull(other_box, agent_to)      
-                    self.plan = []                                                
+                    self.plan = deque()                                               
                     if other_box.location in to_free_cells :
                         self.request[other_box] = to_free_cells  
                     return action
                 
                 if len(push_cells) > 0 :
-                    self.plan = []
+                    self.plan = deque()
                     del(self.request[other_box]) 
-                    action = self.Push(other_box, push_cells.pop(0))
+                    action = self.Push(other_box, push_cells.popleft())
                     self.request[other_box] = to_free_cells 
                     return action
                 else :
@@ -343,7 +355,7 @@ class Agent:
                                 
                 return self.NoOp()
         else :
-            return self.Move(self.request_plan.pop(0))  #move closer to the box
+            return self.Move(self.request_plan.popleft())  #move closer to the box
                 
     #make a request to some agent because the current plan cannot be executed, agent could be blocked or box could be blocked        
     def MakeRequest(self,blocked) :        
@@ -357,17 +369,15 @@ class Agent:
                             agent.request[box] = self.plan.copy()
    
     def ExecuteDecision(self) :
-        cell1 = self.plan[0]
-        cell2 = self.plan[1]  
+        cell1 = self.plan.popleft()
+        cell2 = self.plan[0]  
         
         #Move towards the box
         if self.move_box.location != cell1 :
-            self.plan.pop(0)
             return self.Move(cell1)  
         else:
             #If next to next location is where box should be, then push
             if cell2 != self.location :
-                self.plan.pop(0)
                 action = self.Push(self.move_box,cell2)
                 if len(self.plan) <= 1 :
                     self.DeleteCells()   #Remove goals and boxes that have reached each other 
@@ -382,7 +392,6 @@ class Agent:
                         small_frontier.put((small_heur, each_neighbour))
                 if not small_frontier.empty():
                     agent_to = small_frontier.get()[1]
-                    self.plan.pop(0)
                     action = self.Pull(self.move_box, agent_to)                            
                     if len(self.plan) <= 1 :
                         self.DeleteCells()
@@ -400,8 +409,7 @@ class Agent:
             return self.NoOp()
                 
         #save the desire plan
-        save_plan = self.plan.copy()
-        
+        save_plan = self.plan.copy()        
         replan = False
         
         #find if any desire plan path is not free
@@ -420,7 +428,7 @@ class Agent:
         
         #while replanning, make intentional plan
         if replan :
-            self.plan = list()
+            self.plan = deque()
             #first try with chosen box and goal
             self.MakeCurrentIntentionPlan()
             if len(self.plan) == 0 :

@@ -184,12 +184,13 @@ def MakeInitialPlan():
                             agent_has_plan_to_goal = plan_a_g.CreateBeliefPlan(agent.location)
                             if agent_has_plan_to_goal :
                                 plan_a_g.plan.reverse()
+                                tmp_list = list(plan_a_g.plan)
                                 #check if there are any goal paths on the way and add them
-                                for index,p in enumerate(plan_a_g.plan) :
+                                for index,p in enumerate(tmp_list) :
                                     if p!= goal_location and p in State.GoalLocations :
                                         plan_new_a_g = Plan(agent.location,p)
                                         if plan_new_a_g not in State.GoalPaths.keys() :
-                                            plan_new_a_g.plan = plan_a_g.plan[:index]
+                                            plan_new_a_g.plan = deque(tmp_list[:index])
                                             State.GoalPaths[plan_new_a_g] = plan_new_a_g.plan
                                             
                                 State.GoalPaths[plan_a_g] = plan_a_g.plan
@@ -198,8 +199,8 @@ def MakeInitialPlan():
                         box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
                         if box_has_plan_to_goal :
                             if len(plan_b_g.plan) > 2 :
-                                plan_g_b = Plan(plan_b_g.plan[1],box.location)
-                                plan_g_b = plan_b_g.plan[2:]
+                                plan_g_b = Plan(list(plan_b_g.plan)[1],box.location)
+                                plan_g_b = deque(list(plan_b_g.plan)[2:])
                                 plan_g_b.append(box.location)
                             plan_b_g.plan.reverse()
                             State.Plans[plan_b_g] = plan_b_g.plan

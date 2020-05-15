@@ -8,13 +8,14 @@ from queue import PriorityQueue
 from state import *
 import sys
 from error import *
+from collections import deque
     
 class Plan():
     def __init__(self, start, end):
         self.start = start
         self.end = end
         self.frontier_set = {self.start}
-        self.plan = []
+        self.plan = deque()
 
     def __eq__(self,other) :
         if self.start == other.start and self.end == other.end :
