@@ -67,7 +67,7 @@ if __name__ == '__main__':
     
     """This gets called until every goal is reached"""
     
-    while len(State.GoalAt) > 0 and count < 1000:
+    while len(State.GoalAt) > 0 and count < 1500:
         combined_actions = list()
         agent_action = ''
         for agent in State.AgentAt :
@@ -77,7 +77,7 @@ if __name__ == '__main__':
             combined_actions.append(agent_action)
         execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely    
         ToServer(execute)
-        ToServer('#'+execute)    
+        
         if globals.server :
             step_succeed = FromServer() #if you want to see server's response, print with a #                
             result = step_succeed.rstrip().split(';')
@@ -91,7 +91,6 @@ if __name__ == '__main__':
                     final_combined_actions.append(agent_action)
                 execute = ';'.join(final_combined_actions)  #prepare joint actions of agents to run parallely    
                 ToServer(execute) 
-                ToServer('#'+execute)
         
         count+=1
         
