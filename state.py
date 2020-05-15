@@ -23,3 +23,10 @@ class State :
     FreeCells = set() #Cells which are currently free .. {location(x,y)}
     MAX_ROW = 0 
     MAX_COL = 0
+
+    @staticmethod
+    def getAgent(number):
+        for agent in State.AgentAt:
+            if agent.number == number:
+                return agent
+        return None

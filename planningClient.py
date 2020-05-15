@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('levels/alextested/Sacrunch.lvl','r')
+            server_messages = open('levels/AlexTested/MAExample_2.lvl', 'r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -67,11 +67,11 @@ if __name__ == '__main__':
     
     """This gets called until every goal is reached"""
     
-    while len(State.GoalAt) > 0 and count < 10000:        
+    while len(State.GoalAt) > 0 and count < 1000:
         combined_actions = list()
         agent_action = ''
         for agent in State.AgentAt :
-            if len(agent.plan) == 0 :
+            if len(agent.plan) == 0:
                 agent.MakeDesirePlan()
             agent_action = agent.CheckAndExecute()
             combined_actions.append(agent_action)

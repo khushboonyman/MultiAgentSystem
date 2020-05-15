@@ -4,6 +4,7 @@ Created on Wed Apr 15 21:55:26 2020
 """
 
 import location
+from box import Box
 from state import *
 from plan import *
 #import state  #contains global variables
@@ -26,14 +27,15 @@ def TranslateToDir(locfrom, locto):
             return 'S'
            
 class Agent:
-    def __init__(self, location, color, number, plan=deque(), move_box = None, move_goal = None, request = dict(), request_plan = deque()):
+    def __init__(self, location, color, number, plan=[], move_box = None, move_goal = None, request_plan = list()):
         self.location = location
         self.color = color
         self.number = number
         self.plan = plan
+        self.blocked_at = None
         self.move_box = move_box
         self.move_goal = move_goal
-        self.request = request
+        self.request = dict()
         self.request_plan = request_plan
         
     def __str__(self):
@@ -61,7 +63,7 @@ class Agent:
         if self.number > other.number :
             return True
         return False
-    
+
     def NoOp(self) :
         #print('from noop')
         return 'NoOp'
@@ -166,56 +168,58 @@ class Agent:
         #agent prioritises request
         if len(self.request) > 0 :
             return
-        
+
         #agent had a plan but left to execute a request, so she needs to replan
         if self.move_box is not None and self.move_goal is not None :
             self.MakeBoxGoalDesirePlan()
             return
-            
-        letters = [letter for letter in State.color_dict[self.color]]
+
+        letters = []
+        if self.color in State.color_dict.keys():
+            letters = [letter for letter in State.color_dict[self.color]]
         min_plan_length = State.MAX_ROW*State.MAX_COL
         min_b_g_length = State.MAX_ROW*State.MAX_COL
-        
+
         for letter in letters :
-            if letter in State.BoxAt.keys() and letter in State.GoalAt.keys() :  
+            if letter in State.BoxAt.keys() and letter in State.GoalAt.keys() :
                 goals = State.GoalAt[letter]
                 boxes = State.BoxAt[letter]
                 for goal_location in goals :
                     #only select goals that don't have dependency
                     if goal_location not in State.GoalDependency.keys() :
-                        for box in boxes :  
+                        for box in boxes :
                             plan_a_b_g = deque()
                             plan_a_b = Plan(self.location, box.location) # Plan for the agent to reach box
-                            #if plan was found initially
-                            if plan_a_b in State.Plans.keys() :
-                                agent_has_plan_to_box = True
-                            else :
-                                agent_has_plan_to_box = plan_a_b.CreateBeliefPlan(self.location)
-                                if agent_has_plan_to_box :
-                                    plan_a_b.plan.reverse()
-                                    State.Plans[plan_a_b] = plan_a_b.plan
-                        
+                        #if plan was found initially
+                        if plan_a_b in State.Plans.keys() :
+                            agent_has_plan_to_box = True
+                        else :
+                            agent_has_plan_to_box = plan_a_b.CreateBeliefPlan(self.location)
                             if agent_has_plan_to_box :
-                                plan_a_b_g.extend(State.Plans[plan_a_b])
-                                plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
-                                #if plan was found initially
-                                if plan_b_g in State.Plans.keys() :
-                                    box_has_plan_to_goal = True
-                                else :
-                                    box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
-                                    if box_has_plan_to_goal :
-                                        plan_b_g.plan.reverse()
-                                        State.Plans[plan_b_g] = plan_b_g.plan
+                                plan_a_b.plan.reverse()
+                                State.Plans[plan_a_b] = plan_a_b.plan
+
+                        if agent_has_plan_to_box :
+                            plan_a_b_g.extend(State.Plans[plan_a_b])
+                            plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
+                            #if plan was found initially
+                            if plan_b_g in State.Plans.keys() :
+                                box_has_plan_to_goal = True
+                            else :
+                                box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
                                 if box_has_plan_to_goal :
-                                    plan_a_b_g.extend(State.Plans[plan_b_g])
-                                    #save the shortest path
-                                    if ((len(plan_a_b_g) == min_plan_length and len(plan_b_g.plan) < min_b_g_length) 
-                                    or len(plan_a_b_g) < min_plan_length) :
-                                        self.plan = plan_a_b_g.copy()
-                                        self.move_box = box
-                                        self.move_goal = goal_location
-                                        min_plan_length = len(plan_a_b_g)
-                                        min_b_g_length = len(plan_b_g.plan)
+                                    plan_b_g.plan.reverse()
+                                    State.Plans[plan_b_g] = plan_b_g.plan
+                            if box_has_plan_to_goal :
+                                plan_a_b_g.extend(State.Plans[plan_b_g])
+                                #save the shortest path
+                                if ((len(plan_a_b_g) == min_plan_length and len(plan_b_g.plan) < min_b_g_length)
+                                or len(plan_a_b_g) < min_plan_length) :
+                                    self.plan = plan_a_b_g.copy()
+                                    self.move_box = box
+                                    self.move_goal = goal_location
+                                    min_plan_length = len(plan_a_b_g)
+                                    min_b_g_length = len(plan_b_g.plan)
 
     #if belief plan had no free cells and intention plan cannot be made with the chosen box-goal, find any other intention .. unrelaxed
     def MakeAnyIntentionPlan(self):
@@ -293,16 +297,16 @@ class Agent:
         self.move_goal = None
 
     #if agent has received request, follow that first
-    def ExecuteRequest(self) :   
+    def ExecuteRequest(self) :
         #don't pick only the first, need to improvise .. make bidding system for example
-        for key in self.request.keys() :
-            other_box = key        #picking the first request
+        for key in self.request.keys():
+            other_box = key  # picking the first request
             to_free_cells = set()
-            break       
-        
-        for value in self.request.values() :
+            break
+
+        for value in self.request.values():
             to_free_cells.update(value)
-            
+
         #need to reach the box in the request
         if len(self.request_plan) == 0 :
             #only make plan to box if its not in the neighborhood
@@ -364,15 +368,20 @@ class Agent:
     #make a request to some agent because the current plan cannot be executed, agent could be blocked or box could be blocked        
     def MakeRequest(self,free_these_cells) :        
         pattern_box = re.compile("[A-Z]+")
+        pattern_agent = re.compile("[0-9]+")
+
         for cell in free_these_cells :
-            letter = State.current_level[cell.x][cell.y]
-            if pattern_box.fullmatch(letter) is not None: 
-                for box in State.BoxAt[letter] :
+            letter_or_num = State.current_level[cell.x][cell.y]
+            if pattern_box.fullmatch(letter_or_num) is not None:
+                for box in State.BoxAt[letter_or_num] :
                     if box.location == cell :
                         for agent in State.AgentAt :
                             if agent.color == box.color :
                                 agent.request[box] = set(self.plan)
-   
+            elif pattern_agent.fullmatch(letter_or_num) is not None:
+                agent = State.getAgent(letter_or_num)
+                agent.request[agent] = set(self.plan)
+
     def ExecuteDecision(self) :
         cell1 = self.plan.popleft()
         cell2 = self.plan[0]  
@@ -404,6 +413,12 @@ class Agent:
         
     #check for requests, check for feasibility of the plan and execute 
     def CheckAndExecute(self):  
+        #prioritise unblocking agent
+        if self.blocked_at and self.blocked_at not in State.FreeCells:
+            return self.NoOp()
+        elif self.blocked_at:
+            self.blocked_at = None
+
         #prioritise request
         if len(self.request) > 0 :
             return self.ExecuteRequest()
@@ -441,6 +456,9 @@ class Agent:
                     self.plan = save_plan 
                     self.MakeRequest(not_free_cells) #make request to agent whose box blocks the current agent
                     if len(self.request) > 0 :  #if request was made to self, then execute
-                        return self.ExecuteRequest()                      
-        
+                        return self.ExecuteRequest()
+                    else:
+                        self.blocked_at = not_free_cells.pop()
+                        return self.NoOp()
+
         return self.ExecuteDecision()
