@@ -67,7 +67,7 @@ if __name__ == '__main__':
     
     """This gets called until every goal is reached"""
     
-    while len(State.GoalAt) > 0 and count < 10000:        
+    while len(State.GoalAt) > 0 and count < 100:        
         combined_actions = list()
         agent_action = ''
         for agent in State.AgentAt :

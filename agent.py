@@ -423,11 +423,6 @@ class Agent:
         
         if len(not_free_cells) != 0 :
             replan = True
-            #for path in self.plan : 
-            #    if path not in State.FreeCells and path != self.move_box.location and path != self.location : #find first non-free cell
-            #        replan = True
-            #        blocked = path
-            #        break                
         
         #while replanning, make intentional plan
         if replan :
