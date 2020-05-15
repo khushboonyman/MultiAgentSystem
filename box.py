@@ -6,7 +6,7 @@ Created on Wed Apr 15 21:55:26 2020
 import location
 
 class Box:
-    def __init__(self, location, color, letter):
+    def __init__(self, location, color, letter, goals = dict()):
         self.location = location
         self.color = color
         self.letter = letter
