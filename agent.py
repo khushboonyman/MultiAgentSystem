@@ -300,70 +300,88 @@ class Agent:
     def ExecuteRequest(self) :
         #don't pick only the first, need to improvise .. make bidding system for example
         for key in self.request.keys():
-            other_box = key  # picking the first request
+            blocking_entity = key  # picking the first request
             to_free_cells = set()
             break
 
         for value in self.request.values():
             to_free_cells.update(value)
 
-        #need to reach the box in the request
-        if len(self.request_plan) == 0 :
-            #only make plan to box if its not in the neighborhood
-            if self.location not in State.Neighbours[other_box.location] :
-                self.MakeBoxIntentionPlan(other_box)    #i chose only intentional plan for this situation
-                if len(self.request_plan) > 0 : 
-                    move_cell = self.request_plan.popleft() 
-                    if  move_cell in State.FreeCells :
+
+        if type(blocking_entity) is Agent:
+            agent = blocking_entity
+            action = None
+            for n in State.Neighbours[self.location]:
+                if n in State.FreeCells and n not in to_free_cells:
+                    action = self.Move(n)
+                    break
+                elif n in State.FreeCells:
+                    action = self.Move(n)
+                    break
+            self.plan = []
+            del (self.request[agent])
+            if self.location in to_free_cells:
+                self.request[agent] = to_free_cells
+            return action
+        else:
+            other_box = blocking_entity
+            #need to reach the box in the request
+            if len(self.request_plan) == 0 :
+                #only make plan to box if its not in the neighborhood
+                if self.location not in State.Neighbours[other_box.location] :
+                    self.MakeBoxIntentionPlan(other_box)    #i chose only intentional plan for this situation
+                    if len(self.request_plan) > 0 :
+                        move_cell = self.request_plan.popleft()
+                        if  move_cell in State.FreeCells :
+                            self.plan = deque()
+                            return self.Move(move_cell)  #agent moves towards box
+                        else :
+                            self.request_plan = deque() #the original plan created has non free cells
+                    else :
+                        del(self.request[other_box]) #delete request, so agent can go ahead with her own plan
+                        return self.NoOp()  #agent couldn't make a plan
+                else :
+                    #now the agent is next to box, tries push first
+                    push_cells = deque()
+                    for n in State.Neighbours[other_box.location] :
+                        if n in State.FreeCells :
+                            if n not in to_free_cells :
+                                del(self.request[other_box])
+                                action = self.Push(other_box,n)
+                                self.plan = deque()
+                                return action
+                            else :
+                                push_cells.append(n)
+
+                    #agent couldn't push, tries to pull away from the first cell that she has to free
+                    pull_cells = deque()
+                    for n in State.Neighbours[self.location]:
+                        if n in State.FreeCells :
+                            if n not in to_free_cells :
+                                del(self.request[other_box])
+                                action = self.Pull(other_box, n)
+                                self.plan = deque()
+                                return action
+                            else :
+                                pull_cells.append(n)
+
+                    if len(pull_cells) > 0 or len(push_cells) > 0 :
                         self.plan = deque()
-                        return self.Move(move_cell)  #agent moves towards box
-                    else :
-                        self.request_plan = deque() #the original plan created has non free cells
-                else :
-                    del(self.request[other_box]) #delete request, so agent can go ahead with her own plan
-                    return self.NoOp()  #agent couldn't make a plan
-            else :                
-                #now the agent is next to box, tries push first
-                push_cells = deque()
-                for n in State.Neighbours[other_box.location] :
-                    if n in State.FreeCells :
-                        if n not in to_free_cells :
-                            del(self.request[other_box])
-                            action = self.Push(other_box,n)                        
-                            self.plan = deque()                                                               
-                            return action
+                        del(self.request[other_box])
+                        if len(pull_cells) > 0 :
+                            cell = pull_cells.popleft()
+                            action = self.Pull(other_box, cell) #pull to any neighbour
                         else :
-                            push_cells.append(n)
-                
-                #agent couldn't push, tries to pull away from the first cell that she has to free    
-                pull_cells = deque()
-                for n in State.Neighbours[self.location]:
-                    if n in State.FreeCells :
-                        if n not in to_free_cells :
-                            del(self.request[other_box])  
-                            action = self.Pull(other_box, n)      
-                            self.plan = deque()  
-                            return action                                             
-                        else :
-                            pull_cells.append(n)
-                
-                if len(pull_cells) > 0 or len(push_cells) > 0 :
-                    self.plan = deque()
-                    del(self.request[other_box]) 
-                    if len(pull_cells) > 0 :
-                        cell = pull_cells.popleft()
-                        action = self.Pull(other_box, cell) #pull to any neighbour
+                            cell = push_cells.popleft()
+                            action = self.Push(other_box, cell) #push to any neighbour
+                        self.request[other_box] = to_free_cells
+                        return action
                     else :
-                        cell = push_cells.popleft()
-                        action = self.Push(other_box, cell) #push to any neighbour   
-                    self.request[other_box] = to_free_cells 
-                    return action
-                else :
-                    del(self.request[other_box])  #box couldn't be moved .. blocked by another box (should make another request ?)
-                                
-                return self.NoOp()
-        else :
-            return self.Move(self.request_plan.popleft())  #move closer to the box
+                        del(self.request[other_box])  #box couldn't be moved .. blocked by another box (should make another request ?)
+
+                    return self.NoOp()
+            else :
+                return self.Move(self.request_plan.popleft())  #move closer to the box
                 
     #make a request to some agent because the current plan cannot be executed, agent could be blocked or box could be blocked        
     def MakeRequest(self,free_these_cells) :        
@@ -380,7 +398,8 @@ class Agent:
                                 agent.request[box] = set(self.plan)
             elif pattern_agent.fullmatch(letter_or_num) is not None:
                 agent = State.getAgent(letter_or_num)
-                agent.request[agent] = set(self.plan)
+                if len(agent.plan) == 0:
+                    agent.request[agent] = set(self.plan)
 
     def ExecuteDecision(self) :
         cell1 = self.plan.popleft()
