@@ -27,3 +27,5 @@ for test in tests:
 print('Succeeded: ' + str(succeeded) + '/' + str(total))
 
 print("Did not solve: " + ', '.join(not_solved))
+
+
