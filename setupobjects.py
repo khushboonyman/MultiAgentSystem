@@ -192,7 +192,7 @@ def MakeInitialPlan():
                                 agent_has_plan_to_goal = plan_a_g.CreateBeliefPlan(agent.location)
                                 if agent_has_plan_to_goal :
                                     plan_a_g.plan.reverse()
-                                                             
+                                    State.GoalPaths[plan_a_g] = plan_a_g.plan
                                     tmp_list = list(plan_a_g.plan)
                                 #check if there are any goal paths on the way and add them
                                     for index,p in enumerate(tmp_list) :
@@ -202,7 +202,6 @@ def MakeInitialPlan():
                                                 plan_new_a_g.plan = deque(tmp_list[:index])
                                                 plan_new_a_g.plan.append(p)
                                                 State.GoalPaths[plan_new_a_g] = plan_new_a_g.plan                                            
-                                                State.GoalPaths[plan_a_g] = plan_a_g.plan
                         
 
 def FindDependency() :
