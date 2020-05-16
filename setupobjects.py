@@ -162,48 +162,48 @@ def SetUpObjects() :
                             State.Neighbours[locations[row][col]].append(locations[row][col - 1])
                 except Exception as ex :
                     HandleError('SetupObjects'+' Index row ='+str(row)+'col ='+str(col)+'/nIndex error {}'.format(repr(ex)))
-
+            
+        
 def MakeInitialPlan():
     for agent in State.AgentAt :
         letters = [letter for letter in State.color_dict[agent.color]]
         for letter in letters :
-            if letter in State.BoxAt.keys() and letter in State.GoalAt.keys() :  
+            if letter in State.BoxAt.keys() :  
                 boxes = State.BoxAt[letter]
-                goals = State.GoalAt[letter]
-            
                 for box in boxes :
                     plan_a_b = Plan(agent.location, box.location) # Plan for the agent to reach box
                     agent_has_plan_to_box = plan_a_b.CreateBeliefPlan(agent.location)
                     if agent_has_plan_to_box :
                         plan_a_b.plan.reverse()
                         State.Plans[plan_a_b] = plan_a_b.plan
-                    
-                    for goal_location in goals :
-                        plan_a_g = Plan(agent.location,goal_location)
-                        if plan_a_g not in State.GoalPaths.keys() :
-                            agent_has_plan_to_goal = plan_a_g.CreateBeliefPlan(agent.location)
-                            if agent_has_plan_to_goal :
-                                plan_a_g.plan.reverse()
-                                tmp_list = list(plan_a_g.plan)
-                                #check if there are any goal paths on the way and add them
-                                for index,p in enumerate(tmp_list) :
-                                    if p!= goal_location and p in State.GoalLocations :
-                                        plan_new_a_g = Plan(agent.location,p)
-                                        if plan_new_a_g not in State.GoalPaths.keys() :
-                                            plan_new_a_g.plan = deque(tmp_list[:index])
-                                            State.GoalPaths[plan_new_a_g] = plan_new_a_g.plan
-                                            
-                                State.GoalPaths[plan_a_g] = plan_a_g.plan
+                        
+                    if letter in State.GoalAt.keys() :
+                        goals = State.GoalAt[letter]
+                        
+                        for goal_location in goals :                                                    
+                            plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
+                            box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
+                            if box_has_plan_to_goal :
+                                plan_b_g.plan.reverse()
+                                State.Plans[plan_a_b] = plan_a_b.plan
                                 
-                        plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
-                        box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
-                        if box_has_plan_to_goal :
-                            if len(plan_b_g.plan) > 2 :
-                                plan_g_b = Plan(list(plan_b_g.plan)[1],box.location)
-                                plan_g_b = deque(list(plan_b_g.plan)[2:])
-                                plan_g_b.append(box.location)
-                            plan_b_g.plan.reverse()
-                            State.Plans[plan_b_g] = plan_b_g.plan
+                            plan_a_g = Plan(agent.location,goal_location)
+                            if plan_a_g not in State.GoalPaths.keys() :
+                                agent_has_plan_to_goal = plan_a_g.CreateBeliefPlan(agent.location)
+                                if agent_has_plan_to_goal :
+                                    plan_a_g.plan.reverse()
+                                                             
+                                    tmp_list = list(plan_a_g.plan)
+                                #check if there are any goal paths on the way and add them
+                                    for index,p in enumerate(tmp_list) :
+                                        if p!= goal_location and p in State.GoalLocations :
+                                            plan_new_a_g = Plan(agent.location,p)
+                                            if plan_new_a_g not in State.GoalPaths.keys() :
+                                                plan_new_a_g.plan = deque(tmp_list[:index])
+                                                plan_new_a_g.plan.append(p)
+                                                State.GoalPaths[plan_new_a_g] = plan_new_a_g.plan                                            
+                                                State.GoalPaths[plan_a_g] = plan_a_g.plan
+                        
 
 def FindDependency() :
     State.GoalDependency = dict()
@@ -213,4 +213,8 @@ def FindDependency() :
                 if p not in State.GoalDependency.keys() :
                     State.GoalDependency[p] = set()
                 State.GoalDependency[p].add(plan.end)
-                      
+
+def FindDeadCells() :
+    State.DeadCells = State.FreeCells.difference(State.Paths)
+             
+#MAKE A BFS.. total path agent to box to goal         

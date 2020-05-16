@@ -21,6 +21,8 @@ class Location:
             return True
         if self not in State.FreeCells and other in State.FreeCells :
             return False
+        if len(State.Neighbours[self]) < len(State.Neighbours[other]) :
+            return False
         
         return True
 
@@ -28,6 +30,8 @@ class Location:
         if self in State.FreeCells and other not in State.FreeCells :
             return False
         if self not in State.FreeCells and other in State.FreeCells :
+            return True
+        if len(State.Neighbours[self]) < len(State.Neighbours[other]) :
             return True
         
         return False

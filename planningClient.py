@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('levels/AlexTested/MAExample.lvl', 'r')
+            server_messages = open('levels/tested/stupid.lvl', 'r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -62,12 +62,13 @@ if __name__ == '__main__':
     FindDependency()
     #sort the agents according to the number, so as to send their actions in the right order
     State.AgentAt.sort()
+    FindDeadCells()
 ###########################################one time execution###################################################    
     count = 0 #used for testing, can be removed in the final deliverable
     
     """This gets called until every goal is reached"""
     
-    while len(State.GoalAt) > 0 and count < 1500:
+    while len(State.GoalAt) > 0 and count < 2500:
         combined_actions = list()
         agent_action = ''
         for agent in State.AgentAt :

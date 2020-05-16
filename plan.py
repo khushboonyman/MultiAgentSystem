@@ -58,6 +58,7 @@ class Plan():
                 leaf = frontier.get()[1]
                 if self.CreateBeliefPlan(leaf):
                     self.plan.append(leaf)
+                    State.Paths.add(leaf)
                     return True
 
     #while finding a plan, take preconditions into account

@@ -6,10 +6,12 @@ Created on Wed Apr 15 21:55:26 2020
 import location
 
 class Box:
-    def __init__(self, location, color, letter, goals = dict()):
+    def __init__(self, location, color, letter, goal_path = dict(), moving = False):
         self.location = location
         self.color = color
         self.letter = letter
+        self.goal_path = goal_path
+        self.moving = moving
         
     def __str__(self):
         return str(self.location) + ' Color : ' + self.color + ' Letter : ' + self.letter
