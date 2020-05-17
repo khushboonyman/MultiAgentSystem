@@ -25,7 +25,7 @@ sys.setrecursionlimit(x)
 
 global server
 # java -jar ../server.jar -l ../levels/SAFooBarSimplified_3.lvl -c "python planningClient.py" -g 150 -t 300
-server = False
+server = True
 no_action = 'NoOp'
 
 def FromServer() :
@@ -92,18 +92,20 @@ def MakePlan(agent):
                     Plan.box_parking_planning=True
                     #pick random from parking spot and then remove it from parking spot
                     #maybe add heuristics to the picking
+                    #maybe also add the one that is closest to agent?
                     the_parking_spot = sorted(Plan.parking_spot)[0]
                     Plan.parking_spot.discard(the_parking_spot)
                     plan_b_to_parking = Plan(box.location, the_parking_spot[1], agent.color) # check how to select the parking spot
                     box_plan_to_parking_spot = plan_b_to_parking.CreatePlan(box.location, agent.location, all_goals) #added a goals parameter
-                    # Plan.parking_spot=list()
-                    path.extend(plan_a_b.plan)
-                    plan_b_to_parking.plan.reverse()
-                    path.extend(plan_b_to_parking.plan)
-                    if (len(path) < min_plan_length) and box.letter not in Plan.parked:
-                        min_plan_length = len(path)
-                        plans_box = (box, path)
-                        Plan.parked[box.letter] = the_parking_spot
+                    if box_plan_to_parking_spot:
+                        # Plan.parking_spot=list()
+                        path.extend(plan_a_b.plan)
+                        plan_b_to_parking.plan.reverse()
+                        path.extend(plan_b_to_parking.plan)
+                        if (len(path) < min_plan_length) and box.letter not in Plan.parked:
+                            min_plan_length = len(path)
+                            plans_box = (box, path)
+                            Plan.parked[box.letter] = the_parking_spot
                         #Plan.parked.add(box.letter)
                     # plans_box=(box, path)
                     # Plan.parked.add(box.letter)
@@ -228,6 +230,9 @@ if __name__ == '__main__':
             
             execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely
             #ToServer('#'+execute)
+            if execute == 'NoOp':
+                if box.letter in Plan.parked:
+                    del Plan.parked[box.letter]
             ToServer(execute)
             
             if server :
