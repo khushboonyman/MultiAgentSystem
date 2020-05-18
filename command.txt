@@ -1,1 +1,5 @@
 java -jar server.jar -c "python MultiAgentSystem/planningClient.py" -l "MultiAgentSystem/levels/SAD1.lvl" -g
+
+
+
+java -jar ../server.jar -c "python planningClient.py" -l "../comp17/MADAT.lvl" -g

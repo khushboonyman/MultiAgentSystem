@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('levels/sad1k.lvl', 'r')
+            server_messages = open('../levels/stupid.lvl', 'r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -54,9 +54,10 @@ if __name__ == '__main__':
     except Exception as ex:
         HandleError('PlanningClient'+str(repr(ex)))
 
+    makeGraph()
     #Prepare objects to be used later for processing    
     SetUpObjects()    
-    #Make initial pan that corresponds to the belief of the level
+    #Make initial plan that corresponds to the belief of the level
     MakeInitialPlan()
     #Find dependencies between goals, that is, if a goal should be achieved before another goal
     FindDependency()

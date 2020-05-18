@@ -92,7 +92,9 @@ def ReadHeaders(messages):
             
     if line != '#end':
         HandleError('End missing')
-    
+
+from Graph import *
+
 def SetUpObjects() :
     State.MAX_ROW = len(State.current_level)
     if State.MAX_ROW > limit :
@@ -113,20 +115,50 @@ def SetUpObjects() :
     locations = list()
     pattern_agent = re.compile("[0-9]+")
     pattern_box = re.compile("[A-Z]+")
+    #set up the level as a graph
+    level_Graph = Graph()
     for i_index, row in enumerate(State.current_level):
         locations_of_a_row = list()
         for j_index, col in enumerate(row):
             loc = Location(i_index, j_index)
             locations_of_a_row.append(loc)
             if col == ' ' :
+                level_Graph.addVertex(loc)
                 State.FreeCells.add(loc)
+                #MAKE MORE CLEVER TO ADD EDGES
+                #ALSO! Should the edge cost be one? yes..
+                for vertex in Graph.all_vertices:
+                    FOOOOO = abs(loc.x - vertex.id.x) + abs(loc.y - vertex.id.y)
+                    if abs(loc.x - vertex.id.x) + abs(loc.y - vertex.id.y) == 1:
+                        level_Graph.addEdge(vertex.id, loc, 1)
+                        level_Graph.addEdge(loc, vertex.id, 1)
+                        # print("LOC:", loc)
+                        # print("vertex:", vertex.id)
             if pattern_agent.fullmatch(col) is not None:  #making list of agents .. list(agent)
+                level_Graph.addVertex(loc)
+                #MAKE MORE CLEVER TO ADD EDGES
+                #ALSO! Should the edge cost be one? yes..
+                for vertex in Graph.all_vertices:
+                    if abs(loc.x - vertex.id.x) + abs(loc.y - vertex.id.y) == 1:
+                        level_Graph.addEdge(vertex.id, loc, 1)
+                        level_Graph.addEdge(loc, vertex.id, 1)
+                        # print("LOC:", loc)
+                        # print("vertex:", vertex.id)
                 for key, value in State.color_dict.items():
                     if col in value:
                         State.color_dict[key].remove(col)
                         agent = Agent(loc, key, col)
                         State.AgentAt.append(agent)
             if pattern_box.fullmatch(col) is not None:   #making dictionary og boxes .. {letter : list(box)}
+                level_Graph.addVertex(loc)
+                #MAKE MORE CLEVER TO ADD EDGES
+                #ALSO! Should the edge cost be one? yes..
+                for vertex in Graph.all_vertices:
+                    if abs(loc.x - vertex.id.x) + abs(loc.y - vertex.id.y) == 1:
+                        level_Graph.addEdge(vertex.id, loc, 1)
+                        level_Graph.addEdge(loc, vertex.id, 1)
+                        # print("LOC:", loc)
+                        # print("vertex:", vertex.id)
                 for key, value in State.color_dict.items():
                     if col in value:
                         box = Box(loc, key, col)
@@ -136,6 +168,15 @@ def SetUpObjects() :
                         State.BoxAt[col].append(box)
             goal = State.goal_level[i_index][j_index]
             if pattern_box.fullmatch(goal) is not None:  #making dictionary of goals .. {letter : list(location)}
+                #MAKE MORE CLEVER TO ADD EDGES
+                #ALSO! Should the edge cost be one? yes..
+                # if col != ' ':
+                #     level_Graph.addVertex(loc)
+                #     for vertex in Graph.all_vertices:
+                #         if abs(loc.x - vertex.id.x) + abs(loc.y - vertex.id.y) == 1:
+                #             level_Graph.addEdge(vertex.id, loc, 1)
+                #             print("LOC:", loc)
+                #             print("vertex:", vertex.id)
                 for key, value in State.color_dict.items():
                     if goal in value:
                         if goal not in State.GoalAt.keys() :
@@ -143,7 +184,11 @@ def SetUpObjects() :
                         State.GoalAt[goal].append(loc)
                         State.GoalLocations.add(loc)
         locations.append(locations_of_a_row)
-        
+    # for v in level_Graph:
+    #     print(v.id)
+    #     for i in v.getConnections():
+    #         print(v.id, " is connected to ", i.id)
+    #     print("---------------------------")
     for row in range(1, State.MAX_ROW - 1):
         START_COL = State.current_level[row].index('+')+1
         END_COL = len(State.current_level[row])-1
@@ -204,7 +249,7 @@ def MakeInitialPlan():
                                                 State.GoalPaths[plan_new_a_g] = plan_new_a_g.plan                                            
                         
 
-def FindDependency() :
+def FindDependency() : 
     State.GoalDependency = dict()
     for plan,path in State.GoalPaths.items() :
         for p in path :

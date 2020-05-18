@@ -470,6 +470,7 @@ class Agent:
             self.plan = deque()
             self.move_box.moving = False
             #first try with chosen box and goal
+            #makeCurrentInt...Plan() makes a plan from the box to the goal
             self.MakeCurrentIntentionPlan()
             if len(self.plan) == 0 :
                 #if cannot make plan with chosen box and goal, then chose any plan that can be achieved
