@@ -17,7 +17,6 @@ import re
 #from plan import *
 from state import *
 import sys
-from conflict import *
 from setupobjects import *
 import globals
 
@@ -68,7 +67,7 @@ if __name__ == '__main__':
     
     """This gets called until every goal is reached"""
     
-    while len(State.GoalAt) > 0 and count < 1500:
+    while len(State.GoalAt) > 0 or count < 100:
         combined_actions = list()
         agent_action = ''
         for agent in State.AgentAt :
@@ -76,9 +75,7 @@ if __name__ == '__main__':
                 agent.MakeDesirePlan()
             agent_action = agent.CheckAndExecute()
             combined_actions.append(agent_action)
-            
-        
-                
+                       
         execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely    
         ToServer(execute)
         

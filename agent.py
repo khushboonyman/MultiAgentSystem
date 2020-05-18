@@ -166,7 +166,7 @@ class Agent:
     #agent picks goals that have no dependency and all boxes and finds shortest agent-box-goal path ..relaxed
     def MakeDesirePlan(self):
         #agent prioritises request
-        if len(self.request) > 0 :
+        if len(self.request) > 0 :   #should at least plan
             return
 
         #agent had a plan but left to execute a request, so she needs to replan
@@ -279,7 +279,8 @@ class Agent:
             State.color_dict[self.color].remove(self.move_box.letter)
             if len(State.color_dict[self.color]) == 0 :
                 del(State.color_dict[self.color])
-        #Delete the goal that now has a valid box
+        
+        #Delete the goal that now has a valid box        
         State.GoalAt[self.move_box.letter].remove(self.move_goal)
         if len(State.GoalAt[self.move_box.letter]) == 0 :
             del(State.GoalAt[self.move_box.letter])
