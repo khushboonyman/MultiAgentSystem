@@ -2,4 +2,4 @@ java -jar server.jar -c "python MultiAgentSystem/planningClient.py" -l "MultiAge
 
 
 
-java -jar ../server.jar -c "python planningClient.py" -l "../comp17/MADAT.lvl" -g
+java -jar ../server.jar -c "python planningClient.py" -l "/MultiAgentSystem/levels/SACrunch.lvl" -g

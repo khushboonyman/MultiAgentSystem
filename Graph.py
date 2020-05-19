@@ -45,6 +45,11 @@ class Vertex:
     def __init__(self,key):
         self.id = key
         self.connectedTo = {}
+        self.agent = None
+        self.box = None
+        self.goal = False
+        self.free = False
+
 
     def addNeighbor(self,nbr,weight=0):
         self.connectedTo[nbr] = weight
@@ -106,7 +111,7 @@ def makeGraph():
             loc = Location(i_index, j_index)
             locations_of_a_row.append(loc)
             if col == ' ' :
-                level_Graph.addVertex(loc)
+                level_Graph.addVertex(loc).free = True
                 State.FreeCells.add(loc)
                 #MAKE MORE CLEVER TO ADD EDGES
                 #ALSO! Should the edge cost be one? yes..
@@ -119,7 +124,10 @@ def makeGraph():
                         #for the reverse put +1 to the weight
                         level_Graph.addEdge(loc, vertex.id, len_to_goal)
             if pattern_agent.fullmatch(col) is not None:  #making list of agents .. list(agent)
-                level_Graph.addVertex(loc)
+                level_Graph.addVertex(loc).agent = col
+                #remember that this is only for one agent!
+                THIS_ONE_AGENT = level_Graph.getVertex(loc)
+                
                 #MAKE MORE CLEVER TO ADD EDGES
                 #ALSO! Should the edge cost be one? yes..
                 for vertex in Graph.all_vertices:
@@ -135,7 +143,7 @@ def makeGraph():
                         agent = Agent(loc, key, col)
                         State.AgentAt.append(agent)
             if pattern_box.fullmatch(col) is not None:   #making dictionary og boxes .. {letter : list(box)}
-                level_Graph.addVertex(loc)
+                level_Graph.addVertex(loc).box = col
                 #MAKE MORE CLEVER TO ADD EDGES
                 #ALSO! Should the edge cost be one? yes..
                 for vertex in Graph.all_vertices:
@@ -155,6 +163,7 @@ def makeGraph():
                         State.BoxAt[col].append(box)
             goal = State.goal_level[i_index][j_index]
             if pattern_box.fullmatch(goal) is not None:  #making dictionary of goals .. {letter : list(location)}
+                level_Graph.getVertex(loc).goal = True
                 for key, value in State.color_dict.items():
                     if goal in value:
                         if goal not in State.GoalAt.keys() :
@@ -162,4 +171,4 @@ def makeGraph():
                         State.GoalAt[goal].append(loc)
                         State.GoalLocations.add(loc)
         locations.append(locations_of_a_row)
-    return level_Graph
+    return level_Graph, THIS_ONE_AGENT

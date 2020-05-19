@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('../levels/stupid.lvl', 'r')
+            server_messages = open('../levels/stupid_2.lvl', 'r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -54,11 +54,18 @@ if __name__ == '__main__':
     except Exception as ex:
         HandleError('PlanningClient'+str(repr(ex)))
 
-    makeGraph()
+    # from Graph import makeGraph
+    # from MST import MST
+    # graph_and_start = makeGraph()
+    # graph = graph_and_start[0]
+    # agent = graph_and_start[1]
+    # MST(graph,agent)
+
     #Prepare objects to be used later for processing    
-    SetUpObjects()    
+    SetUpObjects()
     #Make initial plan that corresponds to the belief of the level
     MakeInitialPlan()
+    # print(time.perf_counter())
     #Find dependencies between goals, that is, if a goal should be achieved before another goal
     FindDependency()
     #sort the agents according to the number, so as to send their actions in the right order
