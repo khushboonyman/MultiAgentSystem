@@ -44,6 +44,8 @@ def ReadHeaders(messages):
     if line == '#levelname':
         line = Readlines(messages)
         ToServer('#Level name is ' + line)
+        if line[0] == 'S' :
+            State.SingleAgent = True
     else:
         HandleError('Level name is missing')
 
@@ -144,6 +146,9 @@ def SetUpObjects() :
                         State.GoalLocations.add(loc)
         locations.append(locations_of_a_row)
         
+    del(State.goal_level)
+    
+    
     for row in range(1, State.MAX_ROW - 1):
         START_COL = State.current_level[row].index('+')+1
         END_COL = len(State.current_level[row])-1
@@ -166,26 +171,36 @@ def SetUpObjects() :
         
 def MakeInitialPlan():
     for agent in State.AgentAt :
+        agent.boxes = set()
         letters = [letter for letter in State.color_dict[agent.color]]
         for letter in letters :
             if letter in State.BoxAt.keys() :  
                 boxes = State.BoxAt[letter]
                 for box in boxes :
+                    box.goals = PriorityQueue()
                     plan_a_b = Plan(agent.location, box.location) # Plan for the agent to reach box
                     agent_has_plan_to_box = plan_a_b.CreateBeliefPlan(agent.location)
                     if agent_has_plan_to_box :
+                        agent.boxes.add(box)
                         plan_a_b.plan.reverse()
-                        State.Plans[plan_a_b] = plan_a_b.plan
+                        State.Plans[plan_a_b] = plan_a_b.plan                        
                         
                     if letter in State.GoalAt.keys() :
                         goals = State.GoalAt[letter]
                         
-                        for goal_location in goals :                                                    
+                        for goal_location in goals :
                             plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
                             box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
                             if box_has_plan_to_goal :
+                                box.goals.put((len(plan_b_g.plan),goal_location))
+                                if len(plan_b_g.plan) > 1 :
+                                    plan_g_b = Plan(goal_location,box.location)
+                                    plan_g_b.plan = deque(list(plan_b_g.plan)[1:])
+                                    plan_g_b.plan.append(box.location)
+                                    State.Plans[plan_g_b] = plan_g_b.plan
+                                    
                                 plan_b_g.plan.reverse()
-                                State.Plans[plan_a_b] = plan_a_b.plan
+                                State.Plans[plan_b_g] = plan_b_g.plan                        
                                 
                             plan_a_g = Plan(agent.location,goal_location)
                             if plan_a_g not in State.GoalPaths.keys() :
@@ -208,12 +223,13 @@ def FindDependency() :
     State.GoalDependency = dict()
     for plan,path in State.GoalPaths.items() :
         for p in path :
-            if p in State.GoalLocations and p != plan.end and p in State.Neighbours[plan.end] :
+            if p in State.GoalLocations and p != plan.end :
                 if p not in State.GoalDependency.keys() :
                     State.GoalDependency[p] = set()
                 State.GoalDependency[p].add(plan.end)
-
-def FindDeadCells() :
-    State.DeadCells = State.FreeCells.difference(State.Paths)
-             
+    del(State.color_dict)
+    del(State.GoalPaths)
+    del(State.GoalAt)
+    del(State.BoxAt)
+      
 #MAKE A BFS.. total path agent to box to goal         

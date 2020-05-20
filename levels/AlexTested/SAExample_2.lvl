@@ -1,23 +1,23 @@
 #domain
 hospital
 #levelname
-SAsimple3
+SAExample_2
 #colors
-blue: 0, A, B
+red: 0, B, A
 #initial
 ++++++++++++
-+       0+ +
-+ ++++++++A+
-+          +
++  A    0+ +
 + ++++++++ +
-+B+        +
++          +
++B++++++++ +
++ +        +
 ++++++++++++
 #goal
 ++++++++++++
-+        +A+
++        + +
 + ++++++++ +
 +          +
 + ++++++++ +
-+ +B       +
++B+A       +
 ++++++++++++
 #end

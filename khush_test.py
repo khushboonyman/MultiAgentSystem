@@ -9,7 +9,6 @@ for p in State.Plans :
     print(p)
     for i in p.plan :
         print(i)
-        
 
 for key,value in State.GoalDependency.items() :
     print(key)
@@ -29,13 +28,42 @@ for key,value in State.GoalPaths.items() :
         print(v)
 
 for cells in State.DeadCells :
-    print(cells)
-    if State.current_level[cells.x][cells.y] == ' ' :
+    if State.current_level[cells.x][cells.y] == ' ' or State.current_level[cells.x][cells.y] == '0'  :
         State.current_level[cells.x] = State.current_level[cells.x][:cells.y]+'*'+State.current_level[cells.x][cells.y+1:] 
         
 l = Location(2,2)
 for n in State.Neighbours[l] :
     print(n)
+    
+for agent in State.AgentAt :
+    print('agent'+str(agent))
+    for box in agent.boxes :
+        print('box'+str(box))
+        while not box.goals.empty() :
+            length,goal = box.goals.get()
+            print('goals'+str(length)+str(goal))
+            
+for agent in State.AgentAt :   
+    print('agent '+str(agent)+ ' boxes ')
+    for box in agent.request_boxes :
+        print(box)
+    for p in agent.request_plan :
+        print(p)
+                           
+for key,value in State.Requests.items() :
+    print('assigned to'+str(key))
+    for v in value :
+        print(v)
+        
+for agent in State.AgentAt :
+    print(str(agent.move_box)+' '+str(agent.move_goal))
+    print('plan1')
+    for p1 in agent.plan1 :
+        print(p1)
+    print('plan2')
+    for p2 in agent.plan2 :
+        print(p2)
+            
 ########################TESTING##################################
 
     

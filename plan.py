@@ -22,11 +22,22 @@ class Plan():
             return True
         return False
     
+    def __lt__(self,other) :
+        if len(self.plan) <= len(other.plan) :
+            return True
+        return False
+    
+    def __gt__(self,other) :
+        if len(self.plan) > len(other.plan) :
+            return True
+        return False
+    
+    
     def __hash__(self) :
         return hash(str(self))
     
     def __str__(self):
-        return ('Start : ' + str(self.start) +' End : ' + str(self.end))
+        return ('St: ' + str(self.start) +' End : ' + str(self.end))
 
     def Heuristic(self, location): #we need to improve the heuristic
         return abs(self.end.x - location.x) + abs(self.end.y - location.y)
@@ -58,7 +69,6 @@ class Plan():
                 leaf = frontier.get()[1]
                 if self.CreateBeliefPlan(leaf):
                     self.plan.append(leaf)
-                    State.Paths.add(leaf)
                     return True
 
     #while finding a plan, take preconditions into account
@@ -88,8 +98,29 @@ class Plan():
                 leaf = frontier.get()[1]
                 if self.CreateIntentionPlan(leaf, agent_location):
                     self.plan.append(leaf)
-                    return True
-                
-    
+                    return True    
 
+#planning a request
+    def CreateAlernativeIntentionPlan(self,loc,valid_locations) :
+        if loc == self.end:
+            return True        
+        leaves = State.Neighbours[loc]
+            
+        frontier = PriorityQueue()
+
+        for leaf in leaves:
+            if leaf not in self.frontier_set and (leaf in State.FreeCells or leaf==self.end or leaf in valid_locations) :
+                heur = self.Heuristic(leaf)
+                frontier.put((heur, leaf))
+                self.frontier_set.add(leaf)
+
+        if frontier.empty():
+            return False
+        else:
+            while not frontier.empty():
+                leaf = frontier.get()[1]
+                if self.CreateAlernativeIntentionPlan(leaf,valid_locations):
+                    self.plan.append(leaf)
+                    return True                
+    
 
