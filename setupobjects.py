@@ -230,6 +230,7 @@ def MakeInitialPlan():
                             box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box.location)
                             if box_has_plan_to_goal :
                                 plan_b_g.plan.reverse()
+                                # State.Plans[plan_b_g] = plan_b_g.plan
                                 State.Plans[plan_a_b] = plan_a_b.plan
                                 
                             plan_a_g = Plan(agent.location,goal_location)

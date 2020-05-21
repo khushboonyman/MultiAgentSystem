@@ -2,4 +2,9 @@ java -jar server.jar -c "python MultiAgentSystem/planningClient.py" -l "MultiAge
 
 
 
-java -jar ../server.jar -c "python planningClient.py" -l "/MultiAgentSystem/levels/SACrunch.lvl" -g
+java -jar ../server.jar -c "python planningClient.py --server=True" -l "../levels/SAFooBarSimplified_3.lvl" -g
+
+
+
+
+java -jar server.jar -l levels/AlexTested/MAExample.lvl -c "python planningClient.py --server=True" -g 150 -t 300

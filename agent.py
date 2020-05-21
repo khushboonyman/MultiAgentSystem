@@ -27,6 +27,7 @@ def TranslateToDir(locfrom, locto):
             return 'S'
            
 class Agent:
+    BOX_IN_WAITING = list()
     def __init__(self, location, color, number, plan=[], move_box = None, move_goal = None, request_plan = list(), box_paths = dict()):
         self.location = location
         self.color = color
@@ -152,16 +153,46 @@ class Agent:
         plan_a_b_g = deque()
         plan_a_b = Plan(self.location, self.move_box.location) # Plan for the agent to reach box
         agent_has_plan_to_box = plan_a_b.CreateIntentionPlan(self.location,self.location)
-        
+        Plan.box_parking_planning=False
         if agent_has_plan_to_box :
             plan_a_b.plan.reverse()
             plan_a_b_g.extend(plan_a_b.plan)
-            plan_b_g = Plan(self.move_box.location, self.move_goal) # Plan for the box to reach goal            
+            plan_b_g = Plan(self.move_box.location, self.move_goal) # Plan for the box to reach goal
+            Plan.box_being_moved = self.move_box.location
             box_has_plan_to_goal = plan_b_g.CreateIntentionPlan(self.move_box.location,self.location)
             if box_has_plan_to_goal :
                 plan_b_g.plan.reverse()
                 plan_a_b_g.extend(plan_b_g.plan)
                 self.plan = plan_a_b_g
+            if not box_has_plan_to_goal:
+                Plan.box_parking_planning=True
+                #pick random from parking spot and then remove it from parking spot
+                #maybe add heuristics to the picking
+                #maybe also add the one that is closest to agent?
+                the_parking_spot = sorted(Plan.parking_spot)[0]
+                if the_parking_spot[1] in Plan.BANNED_parking_spot:
+                    if Plan.BANNED_parking_spot[the_parking_spot[1]] == self.move_box.letter:
+                        the_parking_spot = sorted(Plan.parking_spot)[1]
+                        Plan.parking_spot.discard(the_parking_spot)
+                elif the_parking_spot not in Plan.BANNED_parking_spot:
+                    Plan.parking_spot.discard(the_parking_spot)
+                plan_b_to_parking = Plan(self.move_box.location, the_parking_spot[1])
+                box_plan_to_parking_spot = plan_b_to_parking.CreateIntentionPlan(self.move_box.location, self.location)
+                if box_plan_to_parking_spot:
+                    # Plan.parking_spot=list()
+                    # path.extend(plan_a_b.plan)
+                    plan_b_to_parking.plan.reverse()
+                    plan_a_b_g.extend(plan_b_to_parking.plan)
+                    self.plan = plan_a_b_g
+                    self.LAST_parking_spot = the_parking_spot
+                    Plan.STILL_PARKING[self.move_box.letter] = the_parking_spot[1]
+                    if self.move_box.letter not in Plan.parked:
+                        Plan.parked[self.move_box.letter] = the_parking_spot
+                        # Plan.parked[self.move_box]
+                    # if (len(plan_a_b_g) < min_plan_length) and box.letter not in Plan.parked:
+                    #     min_plan_length = len(path)
+                    #     plans_box = (box, path)
+                    #     Plan.parked[box.letter] = the_parking_spot            
                 
     #agent picks goals that have no dependency and all boxes and finds shortest agent-box-goal path ..relaxed
     def MakeDesirePlan(self):
@@ -273,16 +304,24 @@ class Agent:
         save_key = None
         
         #Delete the box that achieved goal
-        State.BoxAt[self.move_box.letter].remove(self.move_box)
-        if len(State.BoxAt[self.move_box.letter]) == 0 :
-            del(State.BoxAt[self.move_box.letter])
-            State.color_dict[self.color].remove(self.move_box.letter)
-            if len(State.color_dict[self.color]) == 0 :
-                del(State.color_dict[self.color])
-        #Delete the goal that now has a valid box
-        State.GoalAt[self.move_box.letter].remove(self.move_goal)
-        if len(State.GoalAt[self.move_box.letter]) == 0 :
-            del(State.GoalAt[self.move_box.letter])
+        # BUT ONLY WHEN IT'S ACHIEVED!!! ADDING SOME CHANGES.
+        # note that it's already updated with new location CHANGES!!!!!!!!!!!!!
+        if self.move_box.letter not in Plan.parked and self.move_box.letter not in Plan.STILL_PARKING: ##$## AND STILL NOT AT GOAL !!
+            State.BoxAt[self.move_box.letter].remove(self.move_box)
+            if len(State.BoxAt[self.move_box.letter]) == 0 :
+                del(State.BoxAt[self.move_box.letter])
+                State.color_dict[self.color].remove(self.move_box.letter)
+                if len(State.color_dict[self.color]) == 0 :
+                    del(State.color_dict[self.color])
+            #add to in goal and delete from still parking
+            # Plan.STILL_PARKING
+            if self.move_box.letter in Plan.parked.keys():
+                del Plan.parked[self.move_box.letter]
+            Plan.IN_GOAL[self.move_goal] = self.move_box
+            #Delete the goal that now has a valid box
+            State.GoalAt[self.move_box.letter].remove(self.move_goal)
+            if len(State.GoalAt[self.move_box.letter]) == 0 :
+                del(State.GoalAt[self.move_box.letter])
         
         #Find the goals that have dependency on the goal that has been reached
         save_keys = deque()
@@ -424,6 +463,7 @@ class Agent:
             if cell2 != self.location :
                 action = self.Push(self.move_box,cell2)
                 if len(self.plan) <= 1 :
+                    #added parked in Plan.parked. If the box is parked, we don't delete in the followin functioin
                     self.DeleteCells()   #Remove goals and boxes that have reached each other 
                 return action 
             else:
@@ -471,8 +511,16 @@ class Agent:
             self.move_box.moving = False
             #first try with chosen box and goal
             #makeCurrentInt...Plan() makes a plan from the box to the goal
+            # FOOOOOOO = State.BoxAt
+            # if len(Plan.parked) == len(State.BoxAt):
+            #     #TODO: empty the parked.
+            #     Plan.parked = dict()
+            #     #Plan.parked=set()
+            #make sure to save it in case of NoOp we need to ban it
+            Plan.LAST_parking_spot = set()
             self.MakeCurrentIntentionPlan()
             if len(self.plan) == 0 :
+            # if len(Plan.plan) == 0:
                 #if cannot make plan with chosen box and goal, then chose any plan that can be achieved
                 self.MakeAnyIntentionPlan()
                 if len(self.plan) == 0 : #if no plan could be made, keep the original plan 
@@ -484,7 +532,21 @@ class Agent:
                     else :
                         return self.NoOp()
         if len(self.plan) > 1 :
-            return self.ExecuteDecision()
+            execute_decision = self.ExecuteDecision()
+            if execute_decision == 'NoOp' and Plan.box_parking_planning:
+                del Plan.parked[self.move_box.letter]
+                #ban the parking spot for the specific box.
+                Plan.BANNED_parking_spot[Plan.LAST_parking_spot] = self.move_box.letter
+            else:
+                return execute_decision
+
+            #if the goal location was a parking sparking
+            # and it's a NoOp, then try with another parking spot.
+
+
+
+            # return self.ExecuteDecision()
+
         else :
             self.plan = deque()
             return self.NoOp()

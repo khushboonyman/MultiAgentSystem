@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('../levels/stupid_2.lvl', 'r')
+            server_messages = open('../levels/SAFooBarSimplified_3.lvl', 'r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     #Prepare objects to be used later for processing    
     SetUpObjects()
     #Make initial plan that corresponds to the belief of the level
-    MakeInitialPlan()
+    MAKEINITPLAN = MakeInitialPlan()
     # print(time.perf_counter())
     #Find dependencies between goals, that is, if a goal should be achieved before another goal
     FindDependency()
@@ -81,7 +81,14 @@ if __name__ == '__main__':
         agent_action = ''
         for agent in State.AgentAt :
             if len(agent.plan) == 0:
-                agent.MakeDesirePlan()
+                #If the parking queue is empty
+                if len(Agent.BOX_IN_WAITING)==0:
+                    MAKEDESIREPLAN = agent.MakeDesirePlan()
+                #else:
+                else:
+                    #get the first element in the queue in box_awaiting and make desire plan for that.
+                    pass
+
             agent_action = agent.CheckAndExecute()
             combined_actions.append(agent_action)
             
