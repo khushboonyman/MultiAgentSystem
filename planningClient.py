@@ -42,7 +42,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('levels/levels2020/MAaiaioh.lvl', 'r')
+            server_messages = open('levels/levels2020/dontwork/MACoronai.lvl', 'r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         
         execute = ';'.join(combined_actions)  #prepare joint actions of agents to run parallely    
         ToServer(execute)
-                
+                     
         if globals.server :
             step_succeed = FromServer() #if you want to see server's response, print with a #                
             result = step_succeed.rstrip().split(';')

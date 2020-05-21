@@ -366,6 +366,7 @@ class Agent:
     #delete box goal combinations when box is on the goal location                                
     def UpdateCells(self) :
         #check if it was a goal the box was moved to
+                     
         goal_yes = False
         if self.move_goal in State.GoalLocations :
             tmpQueue = PriorityQueue()
@@ -376,38 +377,41 @@ class Agent:
                 tmpQueue.put(heur_goal)
             while not tmpQueue.empty() :
                 self.move_box.goals.put(tmpQueue.get())
-
+                     
         if goal_yes :
             self.DeleteCells()
         else :    
         #update box to goal priority queue
             tmpQueue = PriorityQueue()
-            while not self.move_box.goals.empty() :            
-                heur_goal = self.move_box.goals.get()
-                goal_location = heur_goal[1] 
-                plan_b_g = Plan(self.move_box.location,goal_location)    
-                try :
-                    plan_b_g.plan = State.Plans[plan_b_g]
-                except Exception as ex :
-                    plan_b_g.CreateBeliefPlan()                      
-                    if len(plan_b_g.plan) > 0 :
-                        plan_b_g.plan.reverse()
-                        State.Plans[plan_b_g] = plan_b_g.plan
+            for box in self.boxes :
+                if box == self.move_box :                    
+                    while not box.goals.empty() :            
+                        heur_goal = box.goals.get()
+                        goal_location = heur_goal[1] 
+                        plan_b_g = Plan(box.location,goal_location)    
+                        try :
+                            plan_b_g.plan = State.Plans[plan_b_g]
+                        except Exception as ex :
+                            plan_b_g.CreateBeliefPlan()                      
+                            if len(plan_b_g.plan) > 0 :
+                                plan_b_g.plan.reverse()
+                                State.Plans[plan_b_g] = plan_b_g.plan
                         tmpQueue.put((len(plan_b_g.plan),goal_location))
-                        
-            while not tmpQueue.empty() :
-                self.move_box.goals.put(tmpQueue.get())
-        
+                                
+                    while not tmpQueue.empty() :
+                        box.goals.put(tmpQueue.get())
+                     
         #update next request
         if len(self.next_request) > 0 :
             self.request_plan = self.next_request
-            self.next_request = deque()
             self.move_box = self.request_boxes.popleft()
-            self.move_goal = None
+            self.next_request = deque()
+            self.FindRequestGoal()
         else :
             self.request_plan = deque()
                                 
-                
+        
+        
     def FindDeadCells(self,how_many,box_from,to_free_cells) :        
         count = 0
         frontier = deque()
@@ -419,6 +423,7 @@ class Agent:
         while len(frontier) > 0 and count < how_many :            
             cell = frontier.popleft()
             if cell != self.location :
+                #if cell not in to_free_cells and cell in State.FreeCells :
                 if cell not in to_free_cells and cell in State.FreeCells :
                     count += 1
                     dead_cells.append(cell)
@@ -449,7 +454,7 @@ class Agent:
         additional_locations = set()
         additional_locations.add(box.location)
         additional_locations.add(self.location)        
-        dead_cells = self.FindDeadCells(len(self.request_boxes)+1,box,to_free_cells)
+        dead_cells = self.FindDeadCells(len(self.request_boxes)+1,box,State.Paths)
         if len(dead_cells) == 0 :
             return False,0
         
@@ -571,6 +576,11 @@ class Agent:
                 pull = True
                 if len(self.plan1) > 1 :
                     agent_to = self.plan1[1]
+                    if len(self.request_plan) == 2 :
+                        available = set(State.Neighbours[agent_to]).intersection(set(State.Neighbours[next_start])).discard(self.move_box.location)
+                        if available is None :
+                            pull = False
+                            agent_to = None
                 else :
                     for n in State.Neighbours[self.move_goal] :
                         if n in State.Neighbours[next_start] and n in State.FreeCells :
@@ -588,6 +598,12 @@ class Agent:
                 pull = True
                 if len(self.request_plan) > 1 :
                     agent_to = self.request_plan[1]
+                    if len(self.request_plan) == 2 :
+                        ToServer('#'+str(agent_to)+' '+str(next_start)+' '+str(self.move_box))
+                        available = set(State.Neighbours[agent_to]).intersection(set(State.Neighbours[next_start])).discard(self.move_box.location)
+                        if available is None :
+                            pull = False
+                            agent_to = None
                 else :
                     for n in State.Neighbours[self.move_goal] :
                         if n in State.Neighbours[next_start] and n in State.FreeCells :
@@ -616,9 +632,8 @@ class Agent:
             if cell2 != self.location : #If next to next location is where box should be, then push
                 action = self.Push(self.move_box,cell2)
             else:
-                pull,agent_to = self.PullDecision() #check if rest of actions should be pull or push
-                
-                if pull and len(set(State.Neighbours[agent_to]).intersection(State.FreeCells)) > 1:
+                pull,agent_to = self.PullDecision() #check if rest of actions should be pull or push                
+                if pull and agent_to is not None and len(set(State.Neighbours[agent_to]).intersection(State.FreeCells)) > 1:
                     if agent_to in State.FreeCells :
                         action = self.Pull(self.move_box, agent_to)
                     else :
@@ -651,10 +666,10 @@ class Agent:
                 if man_dist != 1 :                    
                     self.next_request = deque(list_request[index+1:])
                     self.request_plan = deque(list_request[:index+1])
-                    self.move_goal
-                    return
+                    break
                 
         self.move_goal = self.request_plan[-1]
+        return
         
     def ExecuteRequest(self) :
         
@@ -674,8 +689,8 @@ class Agent:
                     self.plan1.insert(0,old_location)
                 return action
         
-        if self.move_goal is None and self.move_box is not None :
-            self.FindRequestGoal()
+        #if self.move_goal is None and self.move_box is not None :
+        #    self.FindRequestGoal()
             
         cell1 = self.request_plan.popleft()
         
@@ -692,7 +707,7 @@ class Agent:
                 action = self.Push(self.move_box,cell2)
             else:
                 pull,agent_to = self.PullRequest() #check if rest of actions should be pull or push
-                if pull and len(set(State.Neighbours[agent_to]).intersection(State.FreeCells)) > 1:
+                if pull and agent_to is not None and len(set(State.Neighbours[agent_to]).intersection(State.FreeCells)) > 1:
                     if agent_to in State.FreeCells :
                         action = self.Pull(self.move_box, agent_to)
                     else :
@@ -741,9 +756,8 @@ class Agent:
                 ip_made = self.MakeAnyIntentionPlan() #see if any plan can be made        
             if not ip_made :
                 self.MakeRequest(not_free_cells,request=False) #make request to agent whose box blocks the current agent
-        else :
-            if self.wait :
-                self.wait = False
+        else :        
+            self.wait = False
                 
     def CheckRequestPlan(self):          
         #find if any desire plan path is not free
@@ -759,6 +773,5 @@ class Agent:
             ip_made = self.MakeCurrentIntentionPlan(request=True) #first try with chosen box and goal        
             if not ip_made :
                 self.MakeRequest(not_free_cells,request=True) #make request to agent whose box blocks the current agent
-        else :
-            if self.wait :
-                self.wait = False
+        else :            
+            self.wait = False
