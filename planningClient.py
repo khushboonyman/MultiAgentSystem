@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if globals.server:
             server_messages = sys.stdin
         else :
-            server_messages = open('../levels/SAFooBarSimplified_3.lvl', 'r')
+            server_messages = open('../levels/SAFooBarSimplified_2.lvl', 'r')
         ToServer('PlanningClient')
         #Read the input from server
         ReadHeaders(server_messages)
@@ -87,8 +87,7 @@ if __name__ == '__main__':
                 #else:
                 else:
                     #get the first element in the queue in box_awaiting and make desire plan for that.
-                    pass
-
+                    MAKEDESIREPLAN = agent.MakeDesirePlan()
             agent_action = agent.CheckAndExecute()
             combined_actions.append(agent_action)
             

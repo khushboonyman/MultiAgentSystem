@@ -12,6 +12,7 @@ def MakeDesirePlan(self):
     if self.move_box is not None and self.move_goal is not None :
         self.MakeBoxGoalDesirePlan()
         return
+    
 
     letters = []
     if self.color in State.color_dict.keys():

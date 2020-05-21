@@ -2,12 +2,12 @@
 
 
 
-foo = dict()
-foo["a"] = (1, "hehehehee")
 
+class foo():
+    def __init__(self):
+        self.name = "hello"
 
-hey = foo["a"]
-
-
-if "a" in foo.keys():
-    print("HEHEHEHEHE")
+a = foo()
+a = ""
+if a:
+    print("not empty")

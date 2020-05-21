@@ -27,7 +27,7 @@ def TranslateToDir(locfrom, locto):
             return 'S'
            
 class Agent:
-    BOX_IN_WAITING = list()
+    BOX_IN_WAITING = deque()
     def __init__(self, location, color, number, plan=[], move_box = None, move_goal = None, request_plan = list(), box_paths = dict()):
         self.location = location
         self.color = color
@@ -150,15 +150,17 @@ class Agent:
                 
     #there are some cells that are not free in the current plan, then agent tries to find another path .. unrelaxed
     def MakeCurrentIntentionPlan(self) :
+        Plan.parking_spot = set()
         plan_a_b_g = deque()
+        Plan.box_being_moved = self.move_box.location
         plan_a_b = Plan(self.location, self.move_box.location) # Plan for the agent to reach box
-        agent_has_plan_to_box = plan_a_b.CreateIntentionPlan(self.location,self.location)
         Plan.box_parking_planning=False
+        agent_has_plan_to_box = plan_a_b.CreateIntentionPlan(self.location,self.location)
         if agent_has_plan_to_box :
             plan_a_b.plan.reverse()
             plan_a_b_g.extend(plan_a_b.plan)
+            Plan.PLANNING_A_TO_B = False
             plan_b_g = Plan(self.move_box.location, self.move_goal) # Plan for the box to reach goal
-            Plan.box_being_moved = self.move_box.location
             box_has_plan_to_goal = plan_b_g.CreateIntentionPlan(self.move_box.location,self.location)
             if box_has_plan_to_goal :
                 plan_b_g.plan.reverse()
@@ -179,6 +181,8 @@ class Agent:
                 plan_b_to_parking = Plan(self.move_box.location, the_parking_spot[1])
                 box_plan_to_parking_spot = plan_b_to_parking.CreateIntentionPlan(self.move_box.location, self.location)
                 if box_plan_to_parking_spot:
+                    if ((self.move_box.letter, the_parking_spot)) not in self.BOX_IN_WAITING:
+                        self.BOX_IN_WAITING.append((self.move_box.letter, the_parking_spot))
                     # Plan.parking_spot=list()
                     # path.extend(plan_a_b.plan)
                     plan_b_to_parking.plan.reverse()
@@ -204,9 +208,53 @@ class Agent:
         if self.move_box is not None and self.move_goal is not None :
             self.MakeBoxGoalDesirePlan()
             return
+        waited_box = False
+        plan_parked_box_to_goal = False
+        if len(self.BOX_IN_WAITING) > 0:
+            #popleft instead !!!!!!
+            box_in_waiting = self.BOX_IN_WAITING[0]
+            waited_box = True
+            parked_box_letter = box_in_waiting[0]
+            location_of_parked_box = box_in_waiting[1][1]
+            box_at = State.BoxAt[parked_box_letter][0]
+            goal_for_box = State.GoalAt[parked_box_letter][0]
+            parked_box_to_goal = Plan(location_of_parked_box, goal_for_box)
+            plan_parked_box_to_goal = parked_box_to_goal.CreateIntentionPlan(location_of_parked_box, self.location)
+            # plan_b_g = Plan(self.move_box.location, self.move_goal) # Plan for the box to reach goal
+            # Plan.box_being_moved = self.move_box.location
+            # box_has_plan_to_goal = plan_b_g.CreateIntentionPlan(self.move_box.location,self.location)
+            if not plan_parked_box_to_goal:
+                waited_box = False
+        if len(self.BOX_IN_WAITING)>0 and plan_parked_box_to_goal:
+            self.BOX_IN_WAITING.popleft()
+            if not box_at.moving:
+                plan_a_b = Plan(self.location, box_at.location) # Plan for the agent to reach box
+                agent_has_plan_to_box = plan_a_b.CreateBeliefPlan(self.location)                        
+                if agent_has_plan_to_box :
+                    plan_a_b.plan.reverse()
+                    State.Plans[plan_a_b] = plan_a_b.plan
+                if agent_has_plan_to_box :
+                    plan_a_b_g = State.Plans[plan_a_b].copy()
+                    # for goal_location in goals :
+                    #     #only select goals that don't have dependency
+                    if goal_for_box not in State.GoalDependency.keys() :                        
+                        plan_b_g = Plan(box_at.location, goal_for_box) # Plan for the box to reach goal
+                        #if plan was found initially
+                        box_has_plan_to_goal = plan_b_g.CreateBeliefPlan(box_at.location)
+                        if box_has_plan_to_goal :
+                            plan_b_g.plan.reverse()
+                            State.Plans[plan_b_g] = plan_b_g.plan
+                        if box_has_plan_to_goal :
+                            plan_a_b_g.extend(State.Plans[plan_b_g])
+                            self.plan = plan_a_b_g.copy()
+                            self.move_box = box_at
+                            self.move_goal = goal_for_box
+                            del Plan.parked[self.move_box.letter]
 
         letters = []
-        if self.color in State.color_dict.keys():
+        if self.color in State.color_dict.keys() and not plan_parked_box_to_goal:
+            if waited_box:
+                self.BOX_IN_WAITING.appendleft(box_in_waiting)
             letters = [letter for letter in State.color_dict[self.color]]
             min_plan_length = State.MAX_ROW*State.MAX_COL
             min_b_g_length = State.MAX_ROW*State.MAX_COL
@@ -306,7 +354,7 @@ class Agent:
         #Delete the box that achieved goal
         # BUT ONLY WHEN IT'S ACHIEVED!!! ADDING SOME CHANGES.
         # note that it's already updated with new location CHANGES!!!!!!!!!!!!!
-        if self.move_box.letter not in Plan.parked and self.move_box.letter not in Plan.STILL_PARKING: ##$## AND STILL NOT AT GOAL !!
+        if self.move_box.letter not in Plan.parked:# and self.move_box.letter not in Plan.STILL_PARKING: ##$## AND STILL NOT AT GOAL !!
             State.BoxAt[self.move_box.letter].remove(self.move_box)
             if len(State.BoxAt[self.move_box.letter]) == 0 :
                 del(State.BoxAt[self.move_box.letter])
@@ -518,7 +566,8 @@ class Agent:
             #     #Plan.parked=set()
             #make sure to save it in case of NoOp we need to ban it
             Plan.LAST_parking_spot = set()
-            self.MakeCurrentIntentionPlan()
+            if len(Plan.IN_GOAL) < len(State.GoalAt):
+                self.MakeCurrentIntentionPlan()
             if len(self.plan) == 0 :
             # if len(Plan.plan) == 0:
                 #if cannot make plan with chosen box and goal, then chose any plan that can be achieved
@@ -550,3 +599,13 @@ class Agent:
         else :
             self.plan = deque()
             return self.NoOp()
+
+    # def desirePlanToMoveBoxInWaiting(self):
+    #     parked_box_letter = self.BOX_IN_WAITING[0][0]
+    #     location_of_parked_box = self.BOX_IN_WAITING[0][1]
+    #     box_at = State.BoxAt[parked_box_letter]
+    #     goal_for_box = State.GoalAt[parked_box_letter]
+
+
+        
+    #     pass

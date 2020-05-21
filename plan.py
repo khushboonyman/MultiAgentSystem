@@ -99,7 +99,7 @@ class Plan():
             a = bool(self.STILL_PARKING)
             for key,value in self.parked.items():
                 #if self.end == value[1]:
-                if (value[1].__eq__(self.end)):
+                if (value[1].__eq__(self.end)) and not self.box_parking_planning:
                     box_at_other_box_goal = True
             # if len(self.STILL_PARKING)>0 and self.end in self.STILL_PARKING.values():
             #     box_at_other_box_goal = True
@@ -132,7 +132,7 @@ class Plan():
                         dist_from_box = abs(leaf.x - Plan.box_being_moved.x) + abs(leaf.y - Plan.box_being_moved.y)
                         if leaf in GOALS_BOX:
                             a = GOALS_BOX[leaf]
-                            if a in Plan.parked and leaf == Plan.parked[a][1]:
+                            if a in Plan.parked and leaf == State.GoalAt[a][0]:# Plan.parked[a][1]:
                                 dist_from_box +=1
                         #MAKE SURE THAT IF IT's NoOp, then try with another parking spot
                         # I.e. ban that parking spot for the specific box.
