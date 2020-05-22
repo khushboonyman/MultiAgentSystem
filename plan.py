@@ -46,7 +46,9 @@ class Plan():
     def CreatePath(self,came_from,intention) :
         self.plan = deque()
         if intention and self.end not in State.FreeCells :
+            #if agent_location is not None and self.end != agent_location :
             return
+            
         current = self.end
             
         while current != self.start:
@@ -74,6 +76,8 @@ class Plan():
             for n in State.Neighbours[current]:
                 new_cost = cost_so_far[current] + 1
                 if n not in cost_so_far or new_cost < cost_so_far[n]:
+                    if n in State.GoalLocations and n != self.end :
+                        new_cost += 1     
                     cost_so_far[n] = new_cost
                     priority = new_cost + self.Heuristic(n)
                     frontier.put((priority,n))
