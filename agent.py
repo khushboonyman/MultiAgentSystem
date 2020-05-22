@@ -37,6 +37,8 @@ class Agent:
         self.request = dict()
         self.request_plan = request_plan
         self.box_paths = box_paths
+
+        self.pending_goals = []
         
     def __str__(self):
         return str(self.location) + ' Color : ' + self.color + ' Letter : ' + self.number
@@ -180,27 +182,63 @@ class Agent:
             min_plan_length = State.MAX_ROW*State.MAX_COL
             min_b_g_length = State.MAX_ROW*State.MAX_COL
 
-            for letter in letters :
+            prime_goals = []
+            second_goals = []
+            for letter, location in State.GoalAt.items():
+                for l in location:
+                    if len(State.Neighbours[l]) == 1:
+                        prime_goals.append(letter)
+                    elif len(State.Neighbours[l]) == 2:
+                        second_goals.append(letter)
+
+            prime_goals.extend(second_goals)
+            prime_goal_counter = 0
+            goal_sequence = []
+
+            if prime_goals:
+                goal_sequence = [prime_goals[prime_goal_counter]]
+            else:
+                goal_sequence = letters
+            #goal_sequence_locations = []
+            #box_sequence = []
+
+            letter_list = []
+            if self.pending_goals:
+                letter_list = self.pending_goals
+            else:
+                letter_list = goal_sequence
+
+
+            for letter in letter_list :
                 if letter in State.BoxAt.keys() and letter in State.GoalAt.keys() :
                     goals = State.GoalAt[letter]
                     boxes = State.BoxAt[letter]
-                    
+
+
+                    print('TOTAL: {}'.format(letter_list), file=sys.stderr, flush=True)
                     for box in boxes :
                         if not box.moving :
+
                             plan_a_b = Plan(self.location, box.location) # Plan for the agent to reach box
                               #if plan was found initially    
                             if plan_a_b in State.Plans.keys() :
                                 agent_has_plan_to_box = True
+
                             else :
                                 agent_has_plan_to_box = plan_a_b.CreateBeliefPlan(self.location)                        
                                 if agent_has_plan_to_box :
                                     plan_a_b.plan.reverse()
                                     State.Plans[plan_a_b] = plan_a_b.plan
                             if agent_has_plan_to_box :
+
                                 plan_a_b_g = State.Plans[plan_a_b].copy()
                                 for goal_location in goals :
                                     #only select goals that don't have dependency
-                                    if goal_location not in State.GoalDependency.keys() :                        
+                                    #if goal_location not in State.GoalDependency.keys() :  
+                                    if True:   
+
+                                        #print('FIRST: {}'.format(box), file=sys.stderr, flush=True)
+
                                         plan_b_g = Plan(box.location, goal_location) # Plan for the box to reach goal
                                         #if plan was found initially
                                         if plan_b_g in State.Plans.keys() :
@@ -210,19 +248,44 @@ class Agent:
                                             if box_has_plan_to_goal :
                                                 plan_b_g.plan.reverse()
                                                 State.Plans[plan_b_g] = plan_b_g.plan
+
+                                                if not self.pending_goals:
+                                                    encount_goals = []
+                                                    for cell in list(State.Plans[plan_b_g])[:-1]:
+                                                        if cell in State.GoalLocations:
+                                                            encount_goals.append(State.goal_level[cell.x] [cell.y])
+
+                                                    if encount_goals and goal_sequence:
+                                                        encount_goals.reverse()
+                                                        goal_sequence.extend(encount_goals)
+
+                                                    if prime_goal_counter < len(prime_goals) - 1:
+                                                        prime_goal_counter += 1
+                                                        goal_sequence.append(prime_goals[prime_goal_counter])
+
+                                                    self.pending_goals.extend(encount_goals)
+                                                else:
+                                                    self.pending_goals.pop(0)
+
                                         if box_has_plan_to_goal :
                                             plan_a_b_g.extend(State.Plans[plan_b_g])
                                             #save the shortest path
-                                            if ((len(plan_a_b_g) == min_plan_length and len(State.Plans[plan_b_g]) < min_b_g_length)
-                                            or len(plan_a_b_g) < min_plan_length) :
-                                                self.plan = plan_a_b_g.copy()
-                                                self.move_box = box
-                                                self.move_goal = goal_location
-                                                min_plan_length = len(plan_a_b_g)
-                                                min_b_g_length = len(State.Plans[plan_b_g])
+                                            #if ((len(plan_a_b_g) == min_plan_length and len(State.Plans[plan_b_g]) < min_b_g_length)
+                                            #or len(plan_a_b_g) < min_plan_length) :
+
+                                            #print('SECOND: {}'.format(box), file=sys.stderr, flush=True)
+
+                                            self.plan = plan_a_b_g.copy()
+                                            self.move_box = box
+                                            self.move_goal = goal_location
+                                            min_plan_length = len(plan_a_b_g)
+                                            min_b_g_length = len(State.Plans[plan_b_g])
+                break
             
             if self.move_box is not None :
                 self.move_box.moving = True
+
+            #print('\n', file=sys.stderr, flush=True)
 
     #if belief plan had no free cells and intention plan cannot be made with the chosen box-goal, find any other intention .. unrelaxed
     def MakeAnyIntentionPlan(self):
@@ -416,6 +479,8 @@ class Agent:
         
         cell1 = self.plan.popleft()
         cell2 = self.plan[0]  
+
+        #print('EXECUTE: {}'.format(self.move_box), file=sys.stderr, flush=True)
         
         #Move towards the box
         if self.move_box.location != cell1 :
@@ -468,6 +533,7 @@ class Agent:
         
         #while replanning, make intentional plan
         if replan :
+            #print('REPLANNING: {}'.format(self.move_box), file=sys.stderr, flush=True)
             self.plan = deque()
             self.move_box.moving = False
             #first try with chosen box and goal
@@ -483,6 +549,8 @@ class Agent:
                         return self.ExecuteRequest()
                     else :
                         return self.NoOp()
+
+        #print(self.move_box, file=sys.stderr, flush=True)
         if len(self.plan) > 1 :
             return self.ExecuteDecision()
         else :
