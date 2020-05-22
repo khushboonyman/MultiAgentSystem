@@ -124,7 +124,9 @@ class Agent:
         plan_a_b_g = deque()
         plan_a_b = Plan(self.location, self.move_box.location) # Plan for the agent to reach box
         plan_a_b.CreateIntentionPlan(self.location)
-        
+        #FIND FREECELLS
+        free_cells = set(State.FreeCells).difference(self.plan1)
+
         if len(plan_a_b.plan) > 0 :
             plan_a_b.plan.reverse()
             plan_a_b_g.extend(plan_a_b.plan)
@@ -138,6 +140,32 @@ class Agent:
                 else :
                     self.plan1 = plan_a_b_g                    
                 return True
+            else:
+                #IF ABOVE IS not true, then make a plan for a freecell
+                parking_spot = 1000
+                banned = dict()
+                free_cell_tries = len(free_cells)
+                while free_cell_tries != 0:
+                    for free_cell in free_cells:
+                        distance = abs(self.location.x - free_cell.x) + abs(self.location.y - free_cell.y)
+                        if parking_spot not in banned and distance < parking_spot:
+                            parking_spot = distance
+                            parking_cell = free_cell
+                    plan_b_g = Plan(self.move_box.location, parking_cell)
+                    plan_b_g.CreateIntentionPlan(self.location)
+                    if plan_b_g.plan == 0:
+                        banned[parking_spot] = True
+                    if len(plan_b_g.plan) > 0:
+                        plan_b_g.plan.reverse()
+                        plan_a_b_g.extend(plan_b_g.plan)
+                        if request :
+                            self.request_plan = plan_a_b_g
+                        else :
+                            self.plan1 = plan_a_b_g                    
+                        return True
+                    else:
+                        free_cell_tries += 1
+
         return False
     
     def MakeOwnGoalPlan(self):                
@@ -208,7 +236,10 @@ class Agent:
                 
                 while not box.goals.empty() :
                     heur_goal = box.goals.get()
+                    #neighbours of box. if it's narrow. maybe consider taken it first
+                    box.neighbours = len(State.Neighbours[box.location])
                     goal_location = heur_goal[1]
+                    box.goalNeighbours = len(State.Neighbours[goal_location])
                     tmpQueue.put(heur_goal)
                     if goal_location not in State.GoalDependency.keys() and (old_goal is None or goal_location != old_goal) :                        
                         break
@@ -232,7 +263,23 @@ class Agent:
                     if len(plan_b_g.plan) > 0 :
                         plan_a_b_g.extend(plan_b_g.plan)
                         #save the shortest path
-                        if ((len(plan_a_b_g) == min_plan_length and len(plan_b_g.plan) < min_b_g_length)
+                        if box.neighbours == 1:
+                            plan_made = True
+                            self.plan1 = plan_a_b_g.copy()
+                            self.move_box = box
+                            self.move_goal = goal_location
+                            min_plan_length = len(plan_a_b_g)
+                            min_b_g_length = len(plan_b_g.plan)
+                            break
+                        elif box.goalNeighbours == 1:
+                            plan_made = True
+                            self.plan1 = plan_a_b_g.copy()
+                            self.move_box = box
+                            self.move_goal = goal_location
+                            min_plan_length = len(plan_a_b_g)
+                            min_b_g_length = len(plan_b_g.plan)
+                            break
+                        elif ((len(plan_a_b_g) == min_plan_length and len(plan_b_g.plan) < min_b_g_length)
                         or len(plan_a_b_g) < min_plan_length) :
                             plan_made = True
                             self.plan1 = plan_a_b_g.copy()
@@ -667,7 +714,8 @@ class Agent:
         if self.move_box.location != cell1 :  #Move towards the box
             action = self.Move(cell1)  
         else:
-            cell2 = self.plan1[0]              
+            cell2 = self.plan1[0]
+            # cell2 = self.plan1.popleft()              
             if cell2 != self.location : #If next to next location is where box should be, then push
                 action = self.Push(self.move_box,cell2)
             else:
