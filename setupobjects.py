@@ -56,13 +56,14 @@ def ReadHeaders(messages):
             line = Readlines(messages)
             if line[0] == '#' :
                 break               
-            color_data = re.split(', |: |\s', line)
+            color_data = re.split(',|: |\s', line)
             if color_data[0] in list_of_colors:
                 for color_agent_box in color_data:
-                    if color_agent_box in added:
-                        HandleError('Color, agent or box has already been specified')
-                    else:
-                        added.add(color_agent_box)
+                    if color_agent_box != '' :                        
+                        if color_agent_box in added:
+                            HandleError('Color, agent or box has already been specified')
+                        else:
+                            added.add(color_agent_box)
                 State.color_dict[color_data[0]] = color_data[1:]
             else:
                 HandleError('Unacceptable color')                   
@@ -137,12 +138,16 @@ def SetUpObjects() :
                         State.BoxAt[col].append(box)
             goal = State.goal_level[i_index][j_index]
             if pattern_box.fullmatch(goal) is not None:  #making dictionary of goals .. {letter : list(location)}
-                for key, value in State.color_dict.items():
-                    if goal in value:
-                        if goal not in State.GoalAt.keys() :
-                            State.GoalAt[goal] = list()    
-                        State.GoalAt[goal].append(loc)
-                        State.GoalLocations.add(loc)
+                if goal != col :                    
+                    for key, value in State.color_dict.items():
+                        if goal in value:
+                            if goal not in State.GoalAt.keys() :
+                                State.GoalAt[goal] = list()    
+                            State.GoalAt[goal].append(loc)
+                            State.GoalLocations.add(loc)
+            if pattern_agent.fullmatch(goal) is not None:  #making dictionary of goals .. {letter : list(location)}
+                State.AgentGoal[goal] = loc
+                
         locations.append(locations_of_a_row)
         
     del(State.goal_level)
@@ -170,7 +175,11 @@ def SetUpObjects() :
             
         
 def MakeInitialPlan():
+    
     for agent in State.AgentAt :
+        if agent.number in State.AgentGoal.keys():
+            agent.goal = State.AgentGoal[agent.number]
+            
         agent.boxes = set()
         letters = [letter for letter in State.color_dict[agent.color]]
         for letter in letters :
