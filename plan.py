@@ -95,7 +95,7 @@ class Plan():
             if current == self.end:
                 break        
             for n in State.Neighbours[current]:
-                if n in State.FreeCells or n == self.end or n == agent_location :
+                if n in State.FreeCells or n == self.end or (n == agent_location and State.Neighbours[n] != 1) :
                     new_cost = cost_so_far[current] + 1
                     if n not in cost_so_far or new_cost < cost_so_far[n] :                        
                         cost_so_far[n] = new_cost 

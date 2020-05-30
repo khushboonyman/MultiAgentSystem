@@ -263,23 +263,23 @@ class Agent:
                     if len(plan_b_g.plan) > 0 :
                         plan_a_b_g.extend(plan_b_g.plan)
                         #save the shortest path
-                        if box.neighbours == 1:
-                            plan_made = True
-                            self.plan1 = plan_a_b_g.copy()
-                            self.move_box = box
-                            self.move_goal = goal_location
-                            min_plan_length = len(plan_a_b_g)
-                            min_b_g_length = len(plan_b_g.plan)
-                            break
-                        elif box.goalNeighbours == 1:
-                            plan_made = True
-                            self.plan1 = plan_a_b_g.copy()
-                            self.move_box = box
-                            self.move_goal = goal_location
-                            min_plan_length = len(plan_a_b_g)
-                            min_b_g_length = len(plan_b_g.plan)
-                            break
-                        elif ((len(plan_a_b_g) == min_plan_length and len(plan_b_g.plan) < min_b_g_length)
+                        # if box.neighbours == 1:
+                        #     plan_made = True
+                        #     self.plan1 = plan_a_b_g.copy()
+                        #     self.move_box = box
+                        #     self.move_goal = goal_location
+                        #     min_plan_length = len(plan_a_b_g)
+                        #     min_b_g_length = len(plan_b_g.plan)
+                        #     break
+                        # elif box.goalNeighbours == 1:
+                        #     plan_made = True
+                        #     self.plan1 = plan_a_b_g.copy()
+                        #     self.move_box = box
+                        #     self.move_goal = goal_location
+                        #     min_plan_length = len(plan_a_b_g)
+                        #     min_b_g_length = len(plan_b_g.plan)
+                        #     break
+                        if ((len(plan_a_b_g) == min_plan_length and len(plan_b_g.plan) < min_b_g_length)
                         or len(plan_a_b_g) < min_plan_length) :
                             plan_made = True
                             self.plan1 = plan_a_b_g.copy()
@@ -824,7 +824,13 @@ class Agent:
         if self.move_box is not None :
             not_free_cells.discard(self.move_box.location)
         not_free_cells.discard(self.location)
-        
+        if len(State.AgentAt) == 1:# and len(State.BoxAt) == 1: WHY NOT WORKING?!??!?!?!
+            longest_distance = [i.x+i.y for i in State.FreeCells]
+            longest_distance_index = longest_distance.index(max(longest_distance))
+            longest_distance = list(State.FreeCells)
+            longest_distance = longest_distance[longest_distance_index]
+            not_free_cells.add(longest_distance)
+
         #while replanning, make intentional plan
         if len(not_free_cells) != 0 :            
             ip_made = False             
